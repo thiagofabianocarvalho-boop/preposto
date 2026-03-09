@@ -257,34 +257,31 @@ const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbx2d0LwtfN03rF4hHn4G
 const CLORO_MIN=0.2,CLORO_MAX=2.0,PH_MIN=6.0,PH_MAX=9.5;
 let dayType=null, phAtivo=false;
 
-// Inicializar
-// Modo teste: se abrir sem parâmetros, usa cliente de exemplo
 const IS_TESTE = !CLIENTE || !GESTAO;
 const CLIENTE_FINAL = CLIENTE || '[ TESTE — Cliente de Exemplo ]';
 const GESTAO_FINAL  = GESTAO  || 'G01';
 
-// Sempre atualizar nome do cliente e gestão
-document.getElementById('cliente-nome').textContent = CLIENTE_FINAL;
-document.getElementById('cliente-gestao').textContent = GESTAO_FINAL === 'G01' ? 'Gestão 01' : 'Gestão 02';
-document.getElementById('form-area').style.display='block';
+// Inicializar quando DOM estiver pronto
+function inicializar() {
+  // Sempre atualizar nome do cliente e gestão
+  document.getElementById('cliente-nome').textContent = CLIENTE_FINAL;
+  document.getElementById('cliente-gestao').textContent = GESTAO_FINAL === 'G01' ? 'Gestão 01' : 'Gestão 02';
+  document.getElementById('form-area').style.display = 'block';
 
-if (IS_TESTE) {
-  // Mostrar banner de aviso de teste mas permitir usar o formulário
-  document.getElementById('invalid-msg').style.display='block';
-  document.getElementById('invalid-msg').innerHTML = `
-    <div style="background:#FEF3C7;border-radius:16px;padding:16px 20px;border-left:4px solid #B45309;text-align:left;">
-      <strong style="color:#B45309;font-size:13px;">⚠️ Modo de teste — sem parâmetros de cliente</strong>
-      <p style="font-size:12px;color:#92400E;margin-top:4px;line-height:1.5;">
-        Este formulário está aberto sem link de cliente configurado.<br>
-        O formulário abaixo está funcionando normalmente para teste.<br>
-        <strong>Link correto:</strong> <code>arquivo.html?c=NOME_CLIENTE&g=G01&ph=0</code>
-      </p>
-    </div>`;
-}
+  if (IS_TESTE) {
+    document.getElementById('invalid-msg').style.display = 'block';
+    document.getElementById('invalid-msg').innerHTML = `
+      <div style="background:#FEF3C7;border-radius:16px;padding:16px 20px;border-left:4px solid #B45309;text-align:left;">
+        <strong style="color:#B45309;font-size:13px;">⚠️ Modo de teste — sem parâmetros de cliente</strong>
+        <p style="font-size:12px;color:#92400E;margin-top:4px;line-height:1.5;">
+          Este formulário está aberto sem link de cliente configurado.<br>
+          O formulário abaixo está funcionando normalmente para teste.<br>
+          <strong>Link correto:</strong> <code>arquivo.html?c=NOME_CLIENTE&amp;g=G01&amp;ph=0</code>
+        </p>
+      </div>`;
+  }
 
-if (!IS_TESTE) {
-  // pH automático para ETAs
-  if (TEM_PH) {
+  if (!IS_TESTE && TEM_PH) {
     phAtivo = true;
     document.getElementById('sw-ph').classList.add('on');
     document.getElementById('sec-ph').classList.add('show');
@@ -292,10 +289,16 @@ if (!IS_TESTE) {
     document.getElementById('toggle-ph').style.pointerEvents = 'none';
     document.getElementById('toggle-ph').style.opacity = '0.7';
   }
+
+  // Data de hoje
+  document.getElementById('campo-data').value = new Date().toISOString().split('T')[0];
 }
 
-// Data de hoje
-document.getElementById('campo-data').value = new Date().toISOString().split('T')[0];
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', inicializar);
+} else {
+  inicializar();
+}
 
 function setDay(tipo) {
   dayType = tipo;
