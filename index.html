@@ -391,10 +391,11 @@ async function enviar() {
     foraDopadrao:foraDopadrao(), timestamp:new Date().toISOString()
   };
   try {
-    if(URL_SCRIPT!=='SUA_URL_DO_APPS_SCRIPT')
+    if(URL_SCRIPT!=='SUA_URL_DO_APPS_SCRIPT'){
       const params = new URLSearchParams();
       Object.keys(payload).forEach(k => params.append(k, payload[k]===null?'':String(payload[k])));
       await fetch(URL_SCRIPT+'?'+params.toString(),{method:'GET',mode:'no-cors'});
+    }
     document.getElementById('form-area').style.display='none';
     document.getElementById('success').style.display='block';
     document.getElementById('s-time').textContent=new Date().toLocaleTimeString('pt-BR');
