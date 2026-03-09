@@ -133,6 +133,7 @@
       <div class="field">
         <label>Seu nome <span class="req">*</span></label>
         <input type="text" id="campo-preposto" placeholder="Nome completo do preposto">
+        <p style="font-size:11px;color:#94A3B8;margin-top:5px;">💾 Seu nome será salvo automaticamente para os próximos acessos.</p>
       </div>
       <div class="field">
         <label>Data <span class="req">*</span></label>
@@ -412,8 +413,24 @@ function reset() {
   document.getElementById('btn-enviar').innerHTML='<span>📤</span> Enviar Registro do Dia';
 }
 
-document.getElementById('campo-preposto').addEventListener('input',atualizarBtn);
+document.getElementById('campo-preposto').addEventListener('input', function() {
+  // Salvar nome automaticamente ao digitar
+  localStorage.setItem('filtratech_preposto_nome', this.value);
+  atualizarBtn();
+});
 document.getElementById('campo-just').addEventListener('input',atualizarBtn);
+
+// Carregar nome salvo ao abrir o formulário
+const nomeSalvo = localStorage.getItem('filtratech_preposto_nome');
+if (nomeSalvo) {
+  document.getElementById('campo-preposto').value = nomeSalvo;
+  // Mostrar indicador de nome salvo
+  const label = document.querySelector('label[for="campo-preposto"]') || document.querySelector('.field label');
+  const hint = document.createElement('span');
+  hint.style.cssText = 'font-size:10px;color:#4CAF50;font-weight:500;margin-left:6px;text-transform:none;letter-spacing:0;';
+  hint.textContent = '✓ nome salvo';
+  if(label) label.appendChild(hint);
+}
 </script>
 </body>
 </html>
