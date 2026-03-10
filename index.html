@@ -404,43 +404,128 @@
       </button>
     </div>
 
-    <!-- Tela de sucesso -->
+    <!-- Tela de sucesso online -->
     <div class="success-screen" id="successScreen">
       <div class="success-icon">✅</div>
       <h2>Registro enviado!</h2>
       <p>O registro do dia foi salvo com sucesso.<br>Em caso de anomalia, o gestor já foi notificado.</p>
+      <div class="countdown-ring">
+        <svg viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="17" fill="none" stroke="#d8d3cc" stroke-width="3"/>
+          <circle id="countdownCircle" cx="20" cy="20" r="17" fill="none"
+            stroke="#2e7d52" stroke-width="3"
+            stroke-dasharray="107" stroke-dashoffset="0"
+            stroke-linecap="round"
+            transform="rotate(-90 20 20)"/>
+        </svg>
+        <span id="countdownNum">3</span>
+      </div>
+      <p style="font-size:12px;color:var(--texto-claro)">Voltando para novo lançamento…</p>
+    </div>
+
+    <!-- Tela de sucesso offline -->
+    <div class="success-screen" id="offlineScreen">
+      <div class="success-icon">📵</div>
+      <h2>Salvo localmente!</h2>
+      <p>Sem internet no momento. O registro foi salvo no aparelho e será enviado automaticamente assim que a conexão voltar.</p>
+      <div class="pendente-badge" id="pendenteBadge"></div>
+      <div class="countdown-ring">
+        <svg viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="17" fill="none" stroke="#d8d3cc" stroke-width="3"/>
+          <circle id="countdownCircleOffline" cx="20" cy="20" r="17" fill="none"
+            stroke="#e05c2e" stroke-width="3"
+            stroke-dasharray="107" stroke-dashoffset="0"
+            stroke-linecap="round"
+            transform="rotate(-90 20 20)"/>
+        </svg>
+        <span id="countdownNumOffline">3</span>
+      </div>
+      <p style="font-size:12px;color:var(--texto-claro)">Voltando para novo lançamento…</p>
     </div>
 
   </div>
 
+  <!-- Barra de status de conexão -->
+  <div id="statusBar" style="display:none"></div>
+
+  <style>
+    #statusBar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      text-align: center;
+      z-index: 999;
+      transition: all 0.3s;
+    }
+    #statusBar.offline {
+      background: #b71c1c;
+      color: white;
+    }
+    #statusBar.syncing {
+      background: #e65100;
+      color: white;
+    }
+    #statusBar.synced {
+      background: #1b5e20;
+      color: white;
+    }
+    .pendente-badge {
+      margin-top: 10px;
+      background: #fff3e0;
+      border: 1px solid #ffcc80;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #e65100;
+      font-weight: 600;
+    }
+    .countdown-ring {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      margin-top: 14px;
+    }
+    .countdown-ring svg { width: 40px; height: 40px; }
+    .countdown-ring span {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--texto-escuro);
+    }
+  </style>
+
   <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2d0LwtfN03rF4hHn4GdH5exDS5HUvTzSQJT75b4Z2vuOFcSEUpOvt1l8zc3A5cZrA4Q/exec';
+    const FILA_KEY   = 'filtratech_fila_v1';
+    const TIMEOUT_MS = 10000; // 10 segundos
 
-    const params = new URLSearchParams(location.search);
-    const cliente = params.get('c') || '';
-    const gestao  = (params.get('g') || '').toUpperCase();
-    const usePH   = params.get('ph') === '1';
+    const params    = new URLSearchParams(location.search);
+    const cliente   = params.get('c') || '';
+    const gestao    = (params.get('g') || '').toUpperCase();
+    const usePH     = params.get('ph') === '1';
     const pontosRaw = params.get('pontos') || '';
-    const pontos  = pontosRaw ? pontosRaw.split(',').map(p => decodeURIComponent(p.trim())).filter(Boolean) : [];
+    const pontos    = pontosRaw ? pontosRaw.split(',').map(p => decodeURIComponent(p.trim())).filter(Boolean) : [];
 
-    // Valida params obrigatórios
+    // ── Valida params ──────────────────────────────────────────
     if (!cliente || !gestao || pontos.length === 0) {
       document.getElementById('invalidScreen').style.display = 'flex';
       document.getElementById('formWrapper').style.display = 'none';
     } else {
-      // Badge do cliente
       const badge = document.getElementById('clienteBadge');
       badge.style.display = 'flex';
       document.getElementById('clienteNome').textContent = cliente;
       const gestaoMap = { G01: 'Gestão 01', G02: 'Gestão 02', CENTRAL: 'Central' };
       document.getElementById('gestaoLabel').textContent = gestaoMap[gestao] || gestao;
 
-      // Data de hoje
       const hoje = new Date();
       document.getElementById('dataHoje').textContent =
         hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
-      // Renderiza os pontos
       const container = document.getElementById('pontosContainer');
       pontos.forEach((ponto, idx) => {
         const div = document.createElement('div');
@@ -454,16 +539,14 @@
             <div class="mini-field">
               <label>Cloro (mg/L)</label>
               <input type="number" step="0.01" min="0" max="5" inputmode="decimal"
-                id="cloro_${idx}" placeholder="0.00"
-                oninput="validaCloro(this)" />
+                id="cloro_${idx}" placeholder="0.00" oninput="validaCloro(this)" />
               <div class="unit-hint">Meta: 0,20 – 2,00 mg/L</div>
             </div>
             ${usePH ? `
             <div class="mini-field">
               <label>pH</label>
               <input type="number" step="0.1" min="0" max="14" inputmode="decimal"
-                id="ph_${idx}" placeholder="7.0"
-                oninput="validaPH(this)" />
+                id="ph_${idx}" placeholder="7.0" oninput="validaPH(this)" />
               <div class="unit-hint">Meta: 6,0 – 9,5</div>
             </div>` : ''}
           </div>
@@ -472,6 +555,7 @@
       });
     }
 
+    // ── Validações visuais ─────────────────────────────────────
     function validaCloro(el) {
       const v = parseFloat(el.value);
       el.classList.toggle('alerta', !isNaN(v) && (v < 0.20 || v > 2.00));
@@ -490,6 +574,97 @@
       document.getElementById('erroMsg').style.display = 'none';
     }
 
+    // ── Fila offline ───────────────────────────────────────────
+    function lerFila() {
+      try { return JSON.parse(localStorage.getItem(FILA_KEY) || '[]'); } catch { return []; }
+    }
+    function salvarFila(fila) {
+      try { localStorage.setItem(FILA_KEY, JSON.stringify(fila)); } catch {}
+    }
+    function adicionarNaFila(payload) {
+      const fila = lerFila();
+      fila.push({ ...payload, _tentativas: 0, _salvoEm: new Date().toISOString() });
+      salvarFila(fila);
+    }
+    function quantidadePendente() {
+      return lerFila().length;
+    }
+
+    // ── Envio com timeout ──────────────────────────────────────
+    async function enviarComTimeout(payload) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        return true;
+      } catch (e) {
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    // ── Drena a fila quando voltar online ──────────────────────
+    async function processarFila() {
+      const fila = lerFila();
+      if (fila.length === 0) return;
+
+      const bar = document.getElementById('statusBar');
+      bar.className = 'syncing';
+      bar.textContent = `🔄 Enviando ${fila.length} registro(s) pendente(s)…`;
+      bar.style.display = 'block';
+
+      const restantes = [];
+      for (const item of fila) {
+        const ok = await enviarComTimeout(item);
+        if (!ok) restantes.push(item);
+      }
+      salvarFila(restantes);
+
+      if (restantes.length === 0) {
+        bar.className = 'synced';
+        bar.textContent = '✅ Registros pendentes enviados com sucesso!';
+        setTimeout(() => { bar.style.display = 'none'; }, 4000);
+      } else {
+        bar.className = 'offline';
+        bar.textContent = `⚠️ ${restantes.length} registro(s) ainda pendente(s). Tentará novamente em breve.`;
+      }
+    }
+
+    // ── Monitor de conexão ─────────────────────────────────────
+    function atualizarStatusConexao() {
+      const bar = document.getElementById('statusBar');
+      if (!navigator.onLine) {
+        bar.className = 'offline';
+        bar.textContent = '📵 Sem internet — registros serão salvos localmente';
+        bar.style.display = 'block';
+      } else {
+        // Só esconde se não há pendentes e não está sincronizando
+        if (!bar.classList.contains('syncing') && !bar.classList.contains('synced')) {
+          bar.style.display = 'none';
+        }
+      }
+    }
+
+    window.addEventListener('online', () => {
+      atualizarStatusConexao();
+      processarFila();
+    });
+    window.addEventListener('offline', atualizarStatusConexao);
+    atualizarStatusConexao();
+
+    // Tenta processar fila ao carregar (caso haja pendentes de sessão anterior)
+    window.addEventListener('load', () => {
+      if (navigator.onLine && quantidadePendente() > 0) processarFila();
+    });
+
+    // ── Envio principal ────────────────────────────────────────
     async function enviarRegistro() {
       esconderErro();
 
@@ -500,62 +675,110 @@
       if (!responsavel) return mostrarErro('Informe o nome do responsável.');
       if (!turno) return mostrarErro('Selecione o turno.');
 
-      // Coleta dados de cada ponto
       const registros = [];
       for (let i = 0; i < pontos.length; i++) {
         const cloroEl = document.getElementById(`cloro_${i}`);
-        const phEl = document.getElementById(`ph_${i}`);
-        const cloro = cloroEl ? cloroEl.value.trim() : '';
-        const ph = phEl ? phEl.value.trim() : '';
+        const phEl    = document.getElementById(`ph_${i}`);
+        const cloro   = cloroEl ? cloroEl.value.trim() : '';
+        const ph      = phEl ? phEl.value.trim() : '';
 
         if (cloro === '') return mostrarErro(`Informe o cloro para "${pontos[i]}".`);
         if (usePH && ph === '') return mostrarErro(`Informe o pH para "${pontos[i]}".`);
 
-        registros.push({
-          ponto: pontos[i],
-          cloro: parseFloat(cloro),
-          ph: usePH ? parseFloat(ph) : null
-        });
+        registros.push({ ponto: pontos[i], cloro: parseFloat(cloro), ph: usePH ? parseFloat(ph) : null });
       }
 
-      // UI loading
       const btn = document.getElementById('btnEnviar');
       btn.disabled = true;
       document.getElementById('btnTexto').style.display = 'none';
       document.getElementById('spinner').style.display = 'block';
 
-      const hoje = new Date();
-      const dataStr = hoje.toLocaleDateString('pt-BR');
-      const horaStr = hoje.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
+      const agora = new Date();
       const payload = {
         acao: 'registrarMultiplos',
-        cliente,
-        gestao,
-        responsavel,
-        turno,
-        data: dataStr,
-        hora: horaStr,
-        obs,
+        cliente, gestao, responsavel, turno, obs,
+        data: agora.toLocaleDateString('pt-BR'),
+        hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         registros
       };
 
-      try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        document.getElementById('formWrapper').style.display = 'none';
-        document.getElementById('successScreen').style.display = 'flex';
-      } catch (e) {
-        mostrarErro('Erro de conexão. Verifique a internet e tente novamente.');
-        btn.disabled = false;
-        document.getElementById('btnTexto').style.display = 'block';
-        document.getElementById('spinner').style.display = 'none';
+      // Sem internet: salva direto na fila
+      if (!navigator.onLine) {
+        adicionarNaFila(payload);
+        document.getElementById('pendenteBadge').textContent =
+          `📋 ${quantidadePendente()} registro(s) aguardando envio`;
+        mostrarSucesso('offlineScreen', 'countdownCircleOffline', 'countdownNumOffline');
+        return;
       }
+
+      // Com internet: tenta enviar com timeout de 10s
+      const ok = await enviarComTimeout(payload);
+
+      if (ok) {
+        mostrarSucesso('successScreen', 'countdownCircle', 'countdownNum');
+      } else {
+        adicionarNaFila(payload);
+        document.getElementById('offlineScreen').querySelector('h2').textContent = 'Sem resposta do servidor';
+        document.getElementById('offlineScreen').querySelector('p').textContent =
+          'A conexão demorou mais de 10 segundos. O registro foi salvo no aparelho e será reenviado automaticamente.';
+        document.getElementById('pendenteBadge').textContent =
+          `📋 ${quantidadePendente()} registro(s) aguardando envio`;
+        mostrarSucesso('offlineScreen', 'countdownCircleOffline', 'countdownNumOffline');
+      }
+    }
+
+    // ── Countdown + vibração + reset ──────────────────────────
+    function mostrarSucesso(screenId, circleId, numId) {
+      // Vibra no celular: 200ms
+      if (navigator.vibrate) navigator.vibrate(200);
+
+      document.getElementById('formWrapper').style.display = 'none';
+      document.getElementById(screenId).style.display = 'flex';
+
+      const circle = document.getElementById(circleId);
+      const numEl  = document.getElementById(numId);
+      const total  = 107; // circunferência r=17
+      let restante = 3;
+      numEl.textContent = restante;
+      circle.style.strokeDashoffset = '0';
+
+      const intervalo = setInterval(() => {
+        restante--;
+        numEl.textContent = restante;
+        // Anima o arco: esvazia progressivamente
+        circle.style.transition = 'stroke-dashoffset 1s linear';
+        circle.style.strokeDashoffset = String(total * (1 - restante / 3));
+        if (restante <= 0) {
+          clearInterval(intervalo);
+          resetarFormulario(screenId);
+        }
+      }, 1000);
+    }
+
+    function resetarFormulario(screenId) {
+      // Esconde tela de sucesso
+      document.getElementById(screenId).style.display = 'none';
+
+      // Limpa campos
+      document.getElementById('responsavel').value = '';
+      document.getElementById('turno').value = '';
+      document.getElementById('obs').value = '';
+      for (let i = 0; i < pontos.length; i++) {
+        const c = document.getElementById(`cloro_${i}`);
+        const p = document.getElementById(`ph_${i}`);
+        if (c) { c.value = ''; c.classList.remove('alerta'); }
+        if (p) { p.value = ''; p.classList.remove('alerta'); }
+      }
+
+      // Reativa botão e mostra formulário
+      const btn = document.getElementById('btnEnviar');
+      btn.disabled = false;
+      document.getElementById('btnTexto').style.display = 'block';
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('formWrapper').style.display = 'block';
+
+      // Rola para o topo suavemente
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   </script>
 </body>
