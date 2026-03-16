@@ -340,9 +340,6 @@ async function inicializar() {
   // Se PONTOS estiver vazio, usa um ponto padrão
   if (PONTOS.length === 0) PONTOS = ['Ponto de Consumo'];
 
-  // Hidrômetro
-  TEM_HIDRO = dados && (dados.hidrometro === true || dados.hidrometro === '1' || dados.hidrometro === 1);
-
   // Badge do cliente
   const nomeEl   = document.getElementById('cliente-nome');
   const gestaoEl = document.getElementById('cliente-gestao');
