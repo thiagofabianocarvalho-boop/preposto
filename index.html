@@ -215,21 +215,6 @@
       </div>
 
 
-      <!-- HIDRÔMETRO (só aparece se TEM_HIDRO) -->
-      <div id="sec-hidro" style="display:none">
-        <div class="divider"></div>
-        <div class="hidro-card">
-          <div class="hidro-titulo">💧 Leitura do Hidrômetro <span style="font-size:11px;font-weight:400;color:#4CAF50;margin-left:4px;">(opcional)</span></div>
-          <div class="field" style="margin-bottom:0">
-            <label>Leitura atual (m³)</label>
-            <div class="med-item" style="max-width:220px">
-              <input type="number" id="hidrometro-leitura" step="0.001" min="0" placeholder="Ex: 1234.567" oninput="atualizarBtn()">
-              <span class="unit">m³</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div id="alerta-fora" class="fora">
         🔴 <strong>Valor fora do padrão.</strong> O registro será enviado automaticamente ao gestor da Filtratech. Descreva a situação nas observações.
       </div>
@@ -373,7 +358,7 @@ async function inicializar() {
 
   // Hidrômetro
   if (TEM_HIDRO) {
-    document.getElementById('sec-hidro').style.display = 'block';
+    document.getElementById('sec-hidrometro').style.display = 'block';
   }
 
   // pH
@@ -736,7 +721,6 @@ function reset() {
     });
     const bar = document.getElementById('st-cloro-'+i); if(bar) bar.className='status-bar';
   });
-  const hidEl = document.getElementById('hidrometro-leitura'); if(hidEl) hidEl.value='';
   document.getElementById('btn-enviar').disabled = true;
   document.getElementById('btn-enviar').innerHTML = '<span>📤</span> Enviar Registro do Dia';
 }
