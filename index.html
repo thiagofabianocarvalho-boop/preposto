@@ -243,7 +243,7 @@
 // ============================================================
 // CONSTANTES
 // ============================================================
-const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbx2d0LwtfN03rF4hHn4GdH5exDS5HUvTzSQJT75b4Z2vuOFcSEUpOvt1l8zc3A5cZrA4Q/exec';
+const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbx_TWkECZmUyVz6BXg1TGgqJn5dWStJQcgsDDP8tCzGALhG1iChpAixJSvusIeDfSsBqw/exec';
 const CLORO_MIN=0.2, CLORO_MAX=2.0, PH_MIN=6.0, PH_MAX=9.5;
 
 // ============================================================
@@ -397,7 +397,7 @@ function montarPontos() {
   container.innerHTML = '';
 
   if (PONTOS.length === 1) {
-    // Um único ponto — layout original sem título de ponto
+    // Um único ponto — layout original: saída + consumo lado a lado
     container.innerHTML = `
       <div class="med-row">
         <div class="med-item field">
@@ -413,7 +413,7 @@ function montarPontos() {
       </div>
       <div id="st-cloro-0" class="status-bar"></div>`;
   } else {
-    // Múltiplos pontos — um card por ponto
+    // Múltiplos pontos — um card por ponto, UM único campo de medição
     PONTOS.forEach((ponto, i) => {
       const div = document.createElement('div');
       div.className = 'ponto-card';
@@ -422,17 +422,10 @@ function montarPontos() {
           <div class="ponto-num">${i+1}</div>
           📍 ${ponto}
         </div>
-        <div class="med-row">
-          <div class="med-item field">
-            <label>Saída do tratamento <span class="req">*</span></label>
-            <input type="number" id="cloro-saida-${i}" step="0.01" min="0" max="10" placeholder="0.00" oninput="avalCloro(${i})">
-            <span class="unit">mg/L</span>
-          </div>
-          <div class="med-item field">
-            <label>Ponto de consumo <span class="req">*</span></label>
-            <input type="number" id="cloro-consumo-${i}" step="0.01" min="0" max="10" placeholder="0.00" oninput="avalCloro(${i})">
-            <span class="unit">mg/L</span>
-          </div>
+        <div class="med-item field" style="max-width:220px">
+          <label>Cloro Residual <span class="req">*</span></label>
+          <input type="number" id="cloro-consumo-${i}" step="0.01" min="0" max="10" placeholder="0.00" oninput="avalCloro(${i})">
+          <span class="unit">mg/L</span>
         </div>
         <div id="st-cloro-${i}" class="status-bar"></div>`;
       container.appendChild(div);
@@ -525,20 +518,34 @@ function togglePH() {
 // AVALIAÇÃO CLORO (por ponto)
 // ============================================================
 function avalCloro(idx) {
-  const s = parseFloat(document.getElementById('cloro-saida-'+idx)?.value);
-  const c = parseFloat(document.getElementById('cloro-consumo-'+idx)?.value);
+  // 1 ponto: avalia saída + consumo. Múltiplos pontos: só consumo (campo único)
+  const s   = parseFloat(document.getElementById('cloro-saida-'+idx)?.value);
+  const c   = parseFloat(document.getElementById('cloro-consumo-'+idx)?.value);
   const bar = document.getElementById('st-cloro-'+idx);
   if (!bar) return;
-  if (isNaN(s) && isNaN(c)) { bar.className='status-bar'; atualizarBtn(); return; }
-  const sOk = isNaN(s)||(s>=CLORO_MIN&&s<=CLORO_MAX);
-  const cOk = isNaN(c)||(c>=CLORO_MIN&&c<=CLORO_MAX);
-  const sEl = document.getElementById('cloro-saida-'+idx);
-  const cEl = document.getElementById('cloro-consumo-'+idx);
-  if (!isNaN(s) && sEl) sEl.className = sOk?'ok-field':'stop-field';
-  if (!isNaN(c) && cEl) cEl.className = cOk?'ok-field':'stop-field';
-  if (sOk&&cOk) { bar.className='status-bar ok'; bar.textContent='🟢 Cloro dentro do padrão (0,2–2,0 mg/L)'; }
-  else { bar.className='status-bar stop'; const m=[];if(!sOk)m.push('Saída: '+s+' mg/L');if(!cOk)m.push('Consumo: '+c+' mg/L'); bar.textContent='🔴 FORA DO PADRÃO — '+m.join(' · '); document.getElementById('alerta-fora').classList.add('show'); }
-  if (sOk&&cOk) document.getElementById('alerta-fora').classList.remove('show');
+
+  if (PONTOS.length === 1) {
+    // layout duplo — avalia os dois campos
+    if (isNaN(s) && isNaN(c)) { bar.className='status-bar'; atualizarBtn(); return; }
+    const sOk = isNaN(s)||(s>=CLORO_MIN&&s<=CLORO_MAX);
+    const cOk = isNaN(c)||(c>=CLORO_MIN&&c<=CLORO_MAX);
+    const sEl = document.getElementById('cloro-saida-'+idx);
+    const cEl = document.getElementById('cloro-consumo-'+idx);
+    if (!isNaN(s) && sEl) sEl.className = sOk?'ok-field':'stop-field';
+    if (!isNaN(c) && cEl) cEl.className = cOk?'ok-field':'stop-field';
+    if (sOk&&cOk) { bar.className='status-bar ok'; bar.textContent='🟢 Cloro dentro do padrão (0,2–2,0 mg/L)'; }
+    else { bar.className='status-bar stop'; const m=[];if(!sOk)m.push('Saída: '+s+' mg/L');if(!cOk)m.push('Consumo: '+c+' mg/L'); bar.textContent='🔴 FORA DO PADRÃO — '+m.join(' · '); document.getElementById('alerta-fora').classList.add('show'); }
+    if (sOk&&cOk) document.getElementById('alerta-fora').classList.remove('show');
+  } else {
+    // layout simples — só o campo consumo (único campo por ponto)
+    if (isNaN(c)) { bar.className='status-bar'; atualizarBtn(); return; }
+    const cOk = c>=CLORO_MIN&&c<=CLORO_MAX;
+    const cEl = document.getElementById('cloro-consumo-'+idx);
+    if (cEl) cEl.className = cOk?'ok-field':'stop-field';
+    if (cOk) { bar.className='status-bar ok'; bar.textContent='🟢 Cloro dentro do padrão (0,2–2,0 mg/L)'; }
+    else { bar.className='status-bar stop'; bar.textContent='🔴 FORA DO PADRÃO — '+c+' mg/L'; document.getElementById('alerta-fora').classList.add('show'); }
+    if (cOk) document.getElementById('alerta-fora').classList.remove('show');
+  }
   atualizarBtn();
 }
 
@@ -597,9 +604,16 @@ function atualizarBtn() {
   let medicaoOk = true;
   if (dayType === 'util') {
     for (let i=0; i<PONTOS.length; i++) {
-      const cs = document.getElementById('cloro-saida-'+i)?.value;
-      const cc = document.getElementById('cloro-consumo-'+i)?.value;
-      if (!cs || !cc) { medicaoOk = false; break; }
+      if (PONTOS.length === 1) {
+        // 1 ponto: exige saída + consumo
+        const cs = document.getElementById('cloro-saida-'+i)?.value;
+        const cc = document.getElementById('cloro-consumo-'+i)?.value;
+        if (!cs || !cc) { medicaoOk = false; break; }
+      } else {
+        // múltiplos pontos: só o campo único (consumo)
+        const cc = document.getElementById('cloro-consumo-'+i)?.value;
+        if (!cc) { medicaoOk = false; break; }
+      }
     }
   }
 
@@ -632,7 +646,8 @@ async function enviar() {
   if (dayType === 'util') {
     // Uma requisição por ponto
     PONTOS.forEach((ponto, i) => {
-      const cs = document.getElementById('cloro-saida-'+i)?.value || '';
+      // 1 ponto: cs=saída, cc=consumo. Múltiplos: cs vazio, cc=leitura do ponto
+      const cs = PONTOS.length === 1 ? (document.getElementById('cloro-saida-'+i)?.value || '') : '';
       const cc = document.getElementById('cloro-consumo-'+i)?.value || '';
       const ps = phAtivo ? (document.getElementById('ph-saida-'+i)?.value || '') : '';
       const pc = phAtivo ? (document.getElementById('ph-consumo-'+i)?.value || '') : '';
