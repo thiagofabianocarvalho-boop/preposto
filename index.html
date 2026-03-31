@@ -90,6 +90,27 @@
   /* --- HIDRÔMETRO --- */
   .hidro-card{background:linear-gradient(135deg,#E8F5E9,#F1F8F1);border:1.5px solid #4CAF50;border-radius:14px;padding:16px;margin-top:14px;}
   .hidro-titulo{font-family:'Fraunces',serif;font-size:13px;font-weight:600;color:#1B5E20;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+
+  /* --- CALENDÁRIO DE HISTÓRICO --- */
+  .cal-wrap{background:#fff;border-radius:20px;padding:24px;margin-top:14px;box-shadow:0 4px 24px rgba(0,0,0,.15);}
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .cal-titulo{font-family:'Fraunces',serif;font-size:15px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .cal-nav{display:flex;gap:6px;}
+  .cal-nav button{background:var(--ice);border:none;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px;color:var(--ink);transition:background .2s;}
+  .cal-nav button:hover{background:#c8e6c9;}
+  .cal-mes{font-size:13px;font-weight:600;color:var(--slate);text-align:center;margin-bottom:10px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-dow{font-size:10px;font-weight:700;color:var(--silver);text-align:center;padding:4px 0;text-transform:uppercase;}
+  .cal-dia{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--slate);background:var(--mist);}
+  .cal-dia.vazio{background:transparent;}
+  .cal-dia.hoje{border:2px solid #4CAF50;color:#1B5E20;font-weight:700;}
+  .cal-dia.enviado{background:#1B5E20;color:#fff;font-weight:700;}
+  .cal-dia.folga{background:#E2E8F0;color:#94A3B8;}
+  .cal-dia.nao-mediu{background:#FEF3C7;color:#B45309;}
+  .cal-legenda{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;}
+  .cal-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--slate);}
+  .cal-leg-dot{width:12px;height:12px;border-radius:3px;}
+  .cal-loading{text-align:center;padding:20px;color:var(--silver);font-size:13px;}
   /* --- LOADING --- */
   .loading{text-align:center;padding:40px 20px;color:rgba(255,255,255,.7);}
   .spinner{width:36px;height:36px;border:3px solid rgba(76,175,80,.3);border-top-color:#4CAF50;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
@@ -226,6 +247,27 @@
     <p style="text-align:center;font-size:11px;color:var(--silver);margin-top:10px">
       O gestor é notificado automaticamente em caso de anomalia.
     </p>
+  </div>
+
+  <!-- CALENDÁRIO DE HISTÓRICO -->
+  <div class="cal-wrap" id="cal-wrap" style="display:none">
+    <div class="cal-header">
+      <div class="cal-titulo">📅 Histórico de envios</div>
+      <div class="cal-nav">
+        <button onclick="calNavegar(-1)" title="Mês anterior">&#8249;</button>
+        <button onclick="calNavegar(1)" title="Próximo mês">&#8250;</button>
+      </div>
+    </div>
+    <div class="cal-mes" id="cal-mes-label"></div>
+    <div class="cal-grid" id="cal-grid">
+      <div class="cal-loading">Carregando...</div>
+    </div>
+    <div class="cal-legenda">
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#1B5E20"></div>Enviado</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#FEF3C7;border:1px solid #B45309"></div>Sem medição</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#E2E8F0"></div>Folga/Feriado</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--mist);border:1px solid #E2E8F0"></div>Não enviado</div>
+    </div>
   </div>
 
   <!-- SUCESSO -->
@@ -387,6 +429,7 @@ async function inicializar() {
   }
 
   document.getElementById('form-area').style.display = 'block';
+  if (CLIENTE) calIniciar();
 }
 
 // ============================================================
@@ -713,6 +756,7 @@ async function enviar() {
     document.getElementById('form-area').style.display = 'none';
     document.getElementById('success').style.display   = 'block';
     document.getElementById('s-time').textContent = new Date().toLocaleTimeString('pt-BR');
+    if (CLIENTE) { setTimeout(calCarregar, 2000); }
   } catch(e) {
     btn.disabled = false;
     btn.innerHTML = '<span>📤</span> Enviar Registro do Dia';
@@ -725,6 +769,7 @@ async function enviar() {
 // ============================================================
 function reset() {
   document.getElementById('form-area').style.display = 'block';
+  if (CLIENTE) calIniciar();
   document.getElementById('success').style.display   = 'none';
   ['campo-preposto','campo-just','campo-obs','hidrometro-leitura'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('campo-data').value = new Date().toISOString().split('T')[0];
@@ -762,6 +807,100 @@ if (document.readyState === 'loading') {
 } else {
   inicializar();
 }
+// ============================================================
+// CALENDÁRIO DE HISTÓRICO
+// ============================================================
+var calAnoMes = null;
+var calDiasEnviados = {};
+
+function calIniciar() {
+  var agora = new Date();
+  calAnoMes = { ano: agora.getFullYear(), mes: agora.getMonth() + 1 };
+  document.getElementById('cal-wrap').style.display = 'block';
+  calCarregar();
+}
+
+function calNavegar(delta) {
+  calAnoMes.mes += delta;
+  if (calAnoMes.mes > 12) { calAnoMes.mes = 1; calAnoMes.ano++; }
+  if (calAnoMes.mes < 1)  { calAnoMes.mes = 12; calAnoMes.ano--; }
+  calCarregar();
+}
+
+async function calCarregar() {
+  var grid = document.getElementById('cal-grid');
+  grid.innerHTML = '<div class="cal-loading">Carregando...</div>';
+
+  var mesStr = calAnoMes.ano + '-' + String(calAnoMes.mes).padStart(2,'0');
+  var meses = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho',
+               'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('cal-mes-label').textContent =
+    meses[calAnoMes.mes-1] + ' ' + calAnoMes.ano;
+
+  try {
+    var url = URL_SCRIPT + '?action=getHistorico'
+      + '&cliente=' + encodeURIComponent(CLIENTE || '')
+      + '&mes=' + mesStr;
+    var resp = await fetch(url, { method: 'GET', mode: 'cors' });
+    var dados = await resp.json();
+    calDiasEnviados = {};
+    if (dados && dados.dias) {
+      dados.dias.forEach(function(d) { calDiasEnviados[d.dia] = d.tipo; });
+    }
+  } catch(e) {
+    calDiasEnviados = {};
+  }
+  calRenderizar();
+}
+
+function calRenderizar() {
+  var grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  ['D','S','T','Q','Q','S','S'].forEach(function(d) {
+    var el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  var hoje = new Date();
+  var ano  = calAnoMes.ano;
+  var mes  = calAnoMes.mes;
+  var primeiroDia = new Date(ano, mes-1, 1).getDay();
+  var totalDias   = new Date(ano, mes, 0).getDate();
+
+  for (var i = 0; i < primeiroDia; i++) {
+    var el = document.createElement('div');
+    el.className = 'cal-dia vazio';
+    grid.appendChild(el);
+  }
+
+  for (var dia = 1; dia <= totalDias; dia++) {
+    var el = document.createElement('div');
+    var tipo = calDiasEnviados[dia];
+    var ehHoje = dia === hoje.getDate() &&
+                 mes === hoje.getMonth()+1 &&
+                 ano === hoje.getFullYear();
+
+    var classe = 'cal-dia';
+    if (tipo === 'util')                         classe += ' enviado';
+    else if (tipo === 'sabado' || tipo === 'domingo') classe += ' folga';
+    else if (tipo === 'nao-mediu')               classe += ' nao-mediu';
+    if (ehHoje) classe += ' hoje';
+
+    el.className = classe;
+    el.textContent = dia;
+
+    if (tipo === 'util')       el.title = 'Enviado';
+    else if (tipo === 'nao-mediu') el.title = 'Sem medicao';
+    else if (tipo === 'sabado')    el.title = 'Sabado';
+    else if (tipo === 'domingo')   el.title = 'Folga/Feriado';
+
+    grid.appendChild(el);
+  }
+}
+
 </script>
 </body>
 </html>
