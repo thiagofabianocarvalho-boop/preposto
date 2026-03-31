@@ -212,7 +212,7 @@
     <!-- MEDIÇÕES (montado dinamicamente por JS) -->
     <div id="card-med" class="card hidden" style="animation-delay:.12s">
       <div class="card-title"><div class="icon">🧪</div>Cloro Residual Livre</div>
-      <div class="alert info"><span class="ai">ℹ️</span><div>Referência: <strong>0,2 a 2,0 mg/L</strong> (Portaria 888/2021)</div></div>
+      <div class="alert info"><span class="ai">ℹ️</span><div>Recomendado: <strong>0,2 a 2,0 mg/L</strong> | Máximo permitido: <strong>5,0 mg/L</strong> (Portaria 888/2021)</div></div>
 
       <!-- container dos pontos de medição -->
       <div id="pontos-container" style="margin-top:14px"></div>
@@ -256,7 +256,7 @@
 
 
       <div id="alerta-fora" class="fora">
-        🔴 <strong>Valor fora do padrão.</strong> O registro será enviado automaticamente ao gestor da Filtratech. Descreva a situação nas observações.
+        🔴 <strong>Valor fora do limite obrigatório.</strong> O registro será enviado automaticamente ao gestor da Filtratech. Descreva a situação nas observações.
       </div>
     </div>
 
@@ -609,27 +609,64 @@ function avalCloro(idx) {
   const bar = document.getElementById('st-cloro-'+idx);
   if (!bar) return;
 
+  // Classifica o valor de cloro em: ok / atenção / fora
+  function avalValorCloro(v) {
+    if (isNaN(v)) return 'nd';
+    if (v < CLORO_MIN)  return 'baixo';   // < 0,2 — fora da legislação
+    if (v <= CLORO_MAX) return 'ok';       // 0,2–2,0 — ideal
+    if (v <= 5.0)       return 'alto';     // 2,0–5,0 — acima do recomendado, mas dentro do permitido
+    return 'critico';                       // > 5,0 — fora da legislação
+  }
+  function classeCloro(tipo) {
+    if (tipo === 'ok') return 'ok-field';
+    if (tipo === 'alto') return 'warn-field';
+    return 'stop-field';
+  }
+  function isFora(tipo) { return tipo === 'baixo' || tipo === 'critico'; }
+
   if (PONTOS.length === 1) {
-    // layout duplo — avalia os dois campos
     if (isNaN(s) && isNaN(c)) { bar.className='status-bar'; atualizarBtn(); return; }
-    const sOk = isNaN(s)||(s>=CLORO_MIN&&s<=CLORO_MAX);
-    const cOk = isNaN(c)||(c>=CLORO_MIN&&c<=CLORO_MAX);
+    const ts = avalValorCloro(s), tc = avalValorCloro(c);
     const sEl = document.getElementById('cloro-saida-'+idx);
     const cEl = document.getElementById('cloro-consumo-'+idx);
-    if (!isNaN(s) && sEl) sEl.className = sOk?'ok-field':'stop-field';
-    if (!isNaN(c) && cEl) cEl.className = cOk?'ok-field':'stop-field';
-    if (sOk&&cOk) { bar.className='status-bar ok'; bar.textContent='🟢 Cloro dentro do padrão (0,2–2,0 mg/L)'; }
-    else { bar.className='status-bar stop'; const m=[];if(!sOk)m.push('Saída: '+s+' mg/L');if(!cOk)m.push('Consumo: '+c+' mg/L'); bar.textContent='🔴 FORA DO PADRÃO — '+m.join(' · '); document.getElementById('alerta-fora').classList.add('show'); }
-    if (sOk&&cOk) document.getElementById('alerta-fora').classList.remove('show');
+    if (!isNaN(s) && sEl) sEl.className = classeCloro(ts);
+    if (!isNaN(c) && cEl) cEl.className = classeCloro(tc);
+    const temFora  = isFora(ts) || isFora(tc);
+    const temAlto  = ts === 'alto' || tc === 'alto';
+    const tudo_ok  = (isNaN(s)||ts==='ok') && (isNaN(c)||tc==='ok');
+    if (tudo_ok) {
+      bar.className='status-bar ok'; bar.textContent='🟢 Cloro dentro do recomendado (0,2–2,0 mg/L)';
+      document.getElementById('alerta-fora').classList.remove('show');
+    } else if (temFora) {
+      bar.className='status-bar stop';
+      const m=[];
+      if(isFora(ts))m.push('Saída: '+s+' mg/L');
+      if(isFora(tc))m.push('Consumo: '+c+' mg/L');
+      bar.textContent='🔴 Abaixo do mínimo ou acima do permitido — '+m.join(' · ');
+      document.getElementById('alerta-fora').classList.add('show');
+    } else if (temAlto) {
+      bar.className='status-bar warn';
+      const m=[];
+      if(ts==='alto')m.push('Saída: '+s+' mg/L');
+      if(tc==='alto')m.push('Consumo: '+c+' mg/L');
+      bar.textContent='🟡 Acima do recomendado (2,0 mg/L) — '+m.join(' · ')+' — ainda dentro do permitido (máx 5,0 mg/L)';
+      document.getElementById('alerta-fora').classList.remove('show');
+    }
   } else {
-    // layout simples — só o campo consumo (único campo por ponto)
     if (isNaN(c)) { bar.className='status-bar'; atualizarBtn(); return; }
-    const cOk = c>=CLORO_MIN&&c<=CLORO_MAX;
+    const tc = avalValorCloro(c);
     const cEl = document.getElementById('cloro-consumo-'+idx);
-    if (cEl) cEl.className = cOk?'ok-field':'stop-field';
-    if (cOk) { bar.className='status-bar ok'; bar.textContent='🟢 Cloro dentro do padrão (0,2–2,0 mg/L)'; }
-    else { bar.className='status-bar stop'; bar.textContent='🔴 FORA DO PADRÃO — '+c+' mg/L'; document.getElementById('alerta-fora').classList.add('show'); }
-    if (cOk) document.getElementById('alerta-fora').classList.remove('show');
+    if (cEl) cEl.className = classeCloro(tc);
+    if (tc === 'ok') {
+      bar.className='status-bar ok'; bar.textContent='🟢 Cloro dentro do recomendado (0,2–2,0 mg/L)';
+      document.getElementById('alerta-fora').classList.remove('show');
+    } else if (tc === 'alto') {
+      bar.className='status-bar warn'; bar.textContent='🟡 Acima do recomendado (2,0 mg/L) — '+c+' mg/L — ainda dentro do permitido (máx 5,0 mg/L)';
+      document.getElementById('alerta-fora').classList.remove('show');
+    } else {
+      bar.className='status-bar stop'; bar.textContent='🔴 Abaixo do mínimo obrigatório (0,2 mg/L) — '+c+' mg/L';
+      document.getElementById('alerta-fora').classList.add('show');
+    }
   }
   atualizarBtn();
 }
