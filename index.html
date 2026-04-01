@@ -764,6 +764,12 @@ function atualizarBtn() {
         // múltiplos pontos: só o campo único (consumo)
         const cc = document.getElementById('cloro-consumo-'+i)?.value;
         if (!cc) { medicaoOk = false; break; }
+        // ponto rotativo: exige nome do local
+        const ehRot = PONTOS[i]?.trim().toUpperCase() === 'PONTO ROTATIVO';
+        if (ehRot) {
+          const nomeRot = document.getElementById('ponto-rotativo-'+i)?.value?.trim();
+          if (!nomeRot) { medicaoOk = false; break; }
+        }
       }
     }
   }
