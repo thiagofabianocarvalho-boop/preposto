@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Filtratech — Monitoramento Diário de Cloro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1B5E20">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Filtratech">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#0D2818;--ocean:#1B5E20;--sky:#4CAF50;--ice:#E8F5E9;--mist:#F1F8F1;--go:#1B7A40;--go-l:#EBF7F0;--warn:#B45309;--warn-l:#FEF3C7;--stop:#B91C1C;--stop-l:#FEF2F2;--slate:#475569;--silver:#94A3B8;--cloud:#F1F5F9;}
@@ -1202,6 +1208,13 @@ function configurarWhatsApp() {
     btn.href = 'https://wa.me/' + num + '?text=' + msg;
     btn.style.display = 'flex';
   }
+}
+
+// Registrar Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
 }
 
 </script>
