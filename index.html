@@ -92,6 +92,11 @@
   .hidro-titulo{font-family:'Fraunces',serif;font-size:13px;font-weight:600;color:#1B5E20;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 
 
+
+  /* --- WHATSAPP --- */
+  .btn-whats{display:flex;align-items:center;justify-content:center;gap:9px;padding:12px;background:#25D366;color:#fff;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;margin-top:10px;transition:background .2s;}
+  .btn-whats:hover{background:#1ebe5d;}
+  .btn-whats svg{width:20px;height:20px;flex-shrink:0;}
   /* --- RELATÓRIO PDF --- */
   .btn-relatorio{width:100%;padding:13px;background:transparent;color:#4CAF50;border:2px solid #4CAF50;border-radius:14px;font-family:'Fraunces',serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:10px;}
   .btn-relatorio:hover{background:rgba(76,175,80,.1);}
@@ -166,12 +171,12 @@
 
   <div id="form-area" style="display:none">
 
-    <!-- PREPOSTO E DATA -->
+    <!-- FUNCIONÁRIO E DATA -->
     <div class="card" style="animation-delay:.05s">
       <div class="card-title"><div class="icon">👤</div>Identificação</div>
       <div class="field">
         <label>Seu nome <span class="req">*</span></label>
-        <input type="text" id="campo-preposto" placeholder="Nome completo do preposto">
+        <input type="text" id="campo-funcionário" placeholder="Nome completo do funcionário">
         <p style="font-size:11px;color:#94A3B8;margin-top:5px;">💾 Seu nome será salvo automaticamente para os próximos acessos.</p>
       </div>
       <div class="field">
@@ -315,6 +320,12 @@
       </div>
     </div>
   </div>
+
+  <!-- BOTÃO WHATSAPP -->
+  <a class="btn-whats" id="btn-whats" href="#" target="_blank" style="display:none">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+    Falar com o gestor da carteira
+  </a>
 
   <!-- SUCESSO -->
   <div class="success" id="success">
@@ -464,10 +475,10 @@ async function inicializar() {
   document.getElementById('campo-data').value = new Date().toISOString().split('T')[0];
 
   // Nome salvo
-  const nomeSalvo = localStorage.getItem('filtratech_preposto_nome');
+  const nomeSalvo = localStorage.getItem('filtratech_funcionário_nome');
   if (nomeSalvo) {
-    document.getElementById('campo-preposto').value = nomeSalvo;
-    const label = document.querySelector('label[for="campo-preposto"]') || document.querySelector('.field label');
+    document.getElementById('campo-funcionário').value = nomeSalvo;
+    const label = document.querySelector('label[for="campo-funcionário"]') || document.querySelector('.field label');
     const hint = document.createElement('span');
     hint.style.cssText = 'font-size:10px;color:#4CAF50;font-weight:500;margin-left:6px;text-transform:none;letter-spacing:0;';
     hint.textContent = '✓ nome salvo';
@@ -476,6 +487,7 @@ async function inicializar() {
 
   document.getElementById('form-area').style.display = 'block';
   if (CLIENTE) { calIniciar(); document.getElementById('btn-relatorio').style.display='flex'; }
+  configurarWhatsApp();
 }
 
 // ============================================================
@@ -730,7 +742,7 @@ function foraDopadrao() {
 // ATUALIZAR BOTÃO ENVIAR
 // ============================================================
 function atualizarBtn() {
-  const preposto = document.getElementById('campo-preposto').value.trim();
+  const funcionário = document.getElementById('campo-funcionário').value.trim();
   const data     = document.getElementById('campo-data').value;
   const just     = document.getElementById('campo-just').value.trim();
 
@@ -750,7 +762,7 @@ function atualizarBtn() {
     }
   }
 
-  const ok = GESTAO && preposto && data && dayType &&
+  const ok = GESTAO && funcionário && data && dayType &&
     (dayType !== 'nao-mediu' || just) &&
     (dayType !== 'util' || medicaoOk);
 
@@ -765,7 +777,7 @@ async function enviar() {
   btn.disabled = true;
   btn.innerHTML = '<span>⏳</span> Enviando...';
 
-  const preposto    = document.getElementById('campo-preposto').value.trim();
+  const funcionário    = document.getElementById('campo-funcionário').value.trim();
   const data        = document.getElementById('campo-data').value;
   const obs         = document.getElementById('campo-obs').value || '';
   const just        = document.getElementById('campo-just').value || '';
@@ -789,7 +801,7 @@ async function enviar() {
       const payload = {
         cliente: clienteNome,
         gestao:  GESTAO,
-        preposto,
+        funcionário,
         data,
         tipoDia: dayType,
         ponto:   ponto,
@@ -815,7 +827,7 @@ async function enviar() {
     const payload = {
       cliente: clienteNome,
       gestao:  GESTAO,
-      preposto,
+      funcionário,
       data,
       tipoDia: dayType,
       ponto:   PONTOS[0] || '',
@@ -853,8 +865,9 @@ async function enviar() {
 function reset() {
   document.getElementById('form-area').style.display = 'block';
   if (CLIENTE) { calIniciar(); document.getElementById('btn-relatorio').style.display='flex'; }
+  configurarWhatsApp();
   document.getElementById('success').style.display   = 'none';
-  ['campo-preposto','campo-just','campo-obs','hidrometro-leitura'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['campo-funcionário','campo-just','campo-obs','hidrometro-leitura'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('campo-data').value = new Date().toISOString().split('T')[0];
   dayType = null;
   if (!TEM_PH) {
@@ -878,8 +891,8 @@ function reset() {
 // ============================================================
 // EVENTOS
 // ============================================================
-document.getElementById('campo-preposto').addEventListener('input', function() {
-  localStorage.setItem('filtratech_preposto_nome', this.value);
+document.getElementById('campo-funcionário').addEventListener('input', function() {
+  localStorage.setItem('filtratech_funcionário_nome', this.value);
   atualizarBtn();
 });
 document.getElementById('campo-just').addEventListener('input', atualizarBtn);
@@ -1176,6 +1189,19 @@ function montarPDF(dados, dataIni, dataFim) {
   // Salvar
   var nomeArq = 'Filtratech_' + (CLIENTE||'relatorio').replace(/\s+/g,'-') + '_' + dataIni + '_' + dataFim + '.pdf';
   doc.save(nomeArq);
+}
+
+// ============================================================
+// WHATSAPP
+// ============================================================
+function configurarWhatsApp() {
+  var num = GESTAO === 'G01' ? '5512974032478' : '5511512507660';
+  var msg = encodeURIComponent('Olá! Sou funcionário do cliente ' + (CLIENTE || '') + ' e gostaria de falar sobre o monitoramento de cloro.');
+  var btn = document.getElementById('btn-whats');
+  if (btn) {
+    btn.href = 'https://wa.me/' + num + '?text=' + msg;
+    btn.style.display = 'flex';
+  }
 }
 
 </script>
