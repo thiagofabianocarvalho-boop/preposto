@@ -1126,17 +1126,17 @@ function montarPDF(dados, dataIni, dataFim) {
 
   var linhas = registros.map(function(r) {
     var status;
-    if (r.fora === 'SIM') {
-      status = 'FORA';
-    } else if (r.tipoDia === 'nao-mediu') {
+    if (r.tipoDia === 'nao-mediu') {
       status = 'SEM MED.';
     } else if (r.tipoDia === 'util') {
-      // Verificar se algum valor está acima do recomendado (2,0) mas dentro do permitido (5,0)
       var cs = parseFloat(r.cloroSaida);
       var cc = parseFloat(r.cloroConsumo);
-      var altoSaida   = !isNaN(cs) && cs > 2.0 && cs <= 5.0;
-      var altoConsumo = !isNaN(cc) && cc > 2.0 && cc <= 5.0;
-      status = (altoSaida || altoConsumo) ? 'ATENÇÃO' : 'OK';
+      var baixo  = (!isNaN(cs) && cs < 0.2) || (!isNaN(cc) && cc < 0.2);
+      var critico = (!isNaN(cs) && cs > 5.0) || (!isNaN(cc) && cc > 5.0);
+      var alto   = (!isNaN(cs) && cs > 2.0 && cs <= 5.0) || (!isNaN(cc) && cc > 2.0 && cc <= 5.0);
+      if (baixo || critico) status = 'FORA';
+      else if (alto)        status = 'ATENÇÃO';
+      else                  status = 'OK';
     } else {
       status = 'FOLGA';
     }
