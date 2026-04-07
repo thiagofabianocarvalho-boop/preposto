@@ -10,66 +10,181 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Filtratech">
 <link rel="apple-touch-icon" href="icon-192.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
 <style>
-  :root{--ink:#0D2818;--ocean:#1B5E20;--sky:#4CAF50;--ice:#E8F5E9;--mist:#F1F8F1;--go:#1B7A40;--go-l:#EBF7F0;--warn:#B45309;--warn-l:#FEF3C7;--stop:#B91C1C;--stop-l:#FEF2F2;--slate:#475569;--ghost:#94A3B8;--font-h:'Fraunces',serif;--font-b:'DM Sans',sans-serif}
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{margin:0;padding:0;background-color:var(--mist);color:var(--ink);font-family:var(--font-b);line-height:1.5;display:flex;flex-direction:column;align-items:center}
-  header{width:100%;max-width:560px;padding:32px 20px;background:linear-gradient(135deg,var(--ocean),var(--ink));color:#fff;border-radius:0 0 24px 24px;box-shadow:0 10px 30px rgba(0,0,0,0.1);text-align:center;margin-bottom:24px}
-  header h1{font-family:var(--font-h);font-size:28px;margin:0;letter-spacing:-0.5px}
-  header p{opacity:0.8;font-size:14px;margin:8px 0 0}
-  main{width:100%;max-width:560px;padding:0 16px 100px}
-  .card{background:#fff;border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:0 4px 15px rgba(13,40,24,0.04);border:1px solid rgba(0,0,0,0.03)}
-  .card-title{font-family:var(--font-h);font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;color:var(--ocean)}
-  .input-group{margin-bottom:18px}
-  label{display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--slate);text-transform:uppercase;letter-spacing:0.5px}
-  input,select,textarea{width:100%;padding:14px;border:1.5px solid #E2E8F0;border-radius:12px;font-size:16px;font-family:var(--font-b);transition:all 0.2s;color:var(--ink);background-color:#fff}
-  input:focus,select:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 4px var(--ice)}
-  input::placeholder{color:var(--ghost)}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;border:none;border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);font-family:var(--font-b)}
-  .btn-primary{background:var(--ocean);color:#fff;box-shadow:0 8px 20px rgba(27,94,32,0.25)}
-  .btn-primary:active{transform:scale(0.98);box-shadow:0 4px 10px rgba(27,94,32,0.2)}
-  .btn-primary:disabled{background:var(--ghost);box-shadow:none;cursor:not-allowed;opacity:0.6}
-  .btn-secondary{background:var(--mist);color:var(--ocean);border:1px solid var(--ice)}
-  .status-box{display:flex;align-items:center;justify-content:center;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;margin-top:8px;min-height:36px;transition:all 0.3s}
-  .status-box.sucesso{background:var(--go-l);color:var(--go)}
-  .status-box.alerta{background:var(--warn-l);color:var(--warn)}
-  .status-box.erro{background:var(--stop-l);color:var(--stop)}
-  .ponto-row{padding:16px;background:var(--mist);border-radius:16px;margin-bottom:12px;border:1px solid rgba(0,0,0,0.02)}
-  .ponto-name{font-weight:600;font-size:14px;margin-bottom:12px;color:var(--ocean);display:block}
-  .folga-toggle{display:flex;background:var(--ice);padding:6px;border-radius:12px;margin-bottom:20px}
-  .folga-toggle button{flex:1;padding:10px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--slate)}
-  .folga-toggle button.active{background:#fff;color:var(--ocean);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-  .hidden{display:none}
-  footer{position:fixed;bottom:0;width:100%;max-width:560px;padding:16px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);z-index:100;border-top:1px solid rgba(0,0,0,0.05)}
-  .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.9);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:2000}
-  .spinner{width:40px;height:40px;border:4px solid var(--ice);border-top:4px solid var(--ocean);border-radius:50%;animation:spin 1s linear infinite}
-  @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-  #msg-feedback{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:16px 24px;border-radius:12px;color:#fff;font-weight:600;z-index:3000;box-shadow:0 10px 25px rgba(0,0,0,0.2);display:none;width:90%;max-width:400px;text-align:center;animation:slideDown 0.4s cubic-bezier(0.18,0.89,0.32,1.28)}
-  @keyframes slideDown{from{top:-100px;opacity:0}to{top:20px;opacity:1}}
-  #btn-whats{position:fixed;bottom:90px;right:20px;background:#25D366;color:#fff;width:56px;height:56px;border-radius:50%;display:none;align-items:center;justify-content:center;box-shadow:0 4px 15px rgba(37,211,102,0.4);z-index:900;text-decoration:none;transition:transform 0.3s}
-  #btn-whats:active{transform:scale(1.1)}
-  .calendar-container{background:#fff;border-radius:20px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,0.04);margin-bottom:20px}
-  .cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
-  .cal-header h3{margin:0;font-family:var(--font-h);font-size:16px;color:var(--ocean)}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
-  .cal-day-label{font-size:10px;font-weight:700;color:var(--ghost);text-transform:uppercase;padding-bottom:5px}
-  .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;border-radius:8px;cursor:pointer;position:relative;border:1px solid transparent}
-  .cal-day:hover{background:var(--ice)}
-  .cal-day.today{border-color:var(--ocean);font-weight:700;color:var(--ocean)}
-  .cal-day.has-data{background:var(--go-l);color:var(--go);font-weight:600}
-  .cal-day.has-anomalia{background:var(--stop-l);color:var(--stop);font-weight:600}
-  .cal-day.is-folga{background:var(--slate);color:#fff;opacity:0.4}
-  .cal-day.empty{cursor:default}
-  .cal-day.empty:hover{background:none}
+  :root {
+    --ink: #0D2818;
+    --ocean: #1B5E20;
+    --sky: #4CAF50;
+    --ice: #E8F5E9;
+    --mist: #F1F8F1;
+    --go: #1B7A40;
+    --go-l: #EBF7F0;
+    --warn: #B45309;
+    --warn-l: #FEF3C7;
+    --stop: #B91C1C;
+    --stop-l: #FEF2F2;
+    --slate: #475569;
+    --ghost: #94A3B8;
+    --font-h: 'Fraunces', serif;
+    --font-b: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0; padding: 0;
+    background-color: var(--mist);
+    color: var(--ink);
+    font-family: var(--font-b);
+    line-height: 1.5;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  header {
+    width: 100%; max-width: 560px;
+    padding: 32px 20px;
+    background: linear-gradient(135deg, var(--ocean), var(--ink));
+    color: #fff;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  header h1 { font-family: var(--font-h); font-size: 28px; margin: 0; letter-spacing: -0.5px; }
+  header p { opacity: 0.8; font-size: 14px; margin: 8px 0 0; }
+
+  main { width: 100%; max-width: 560px; padding: 0 16px 100px; }
+
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(13,40,24,0.04);
+    border: 1px solid rgba(0,0,0,0.03);
+  }
+
+  .card-title {
+    font-family: var(--font-h); font-size: 18px; font-weight: 700;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--ocean);
+  }
+
+  .input-group { margin-bottom: 18px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--slate); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  input, select, textarea {
+    width: 100%; padding: 14px; border: 1.5px solid #E2E8F0; border-radius: 12px;
+    font-size: 16px; font-family: var(--font-b); transition: all 0.2s; color: var(--ink); background-color: #fff;
+  }
+
+  input:focus, select:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px var(--ice); }
+  input::placeholder { color: var(--ghost); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 16px; border: none; border-radius: 14px;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-family: var(--font-b);
+  }
+
+  .btn-primary { background: var(--ocean); color: #fff; box-shadow: 0 8px 20px rgba(27, 94, 32, 0.25); }
+  .btn-primary:active { transform: scale(0.98); box-shadow: 0 4px 10px rgba(27, 94, 32, 0.2); }
+  .btn-primary:disabled { background: var(--ghost); box-shadow: none; cursor: not-allowed; opacity: 0.6; }
+
+  .btn-secondary { background: var(--mist); color: var(--ocean); border: 1px solid var(--ice); }
+
+  .status-box {
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; margin-top: 8px; min-height: 36px; transition: all 0.3s;
+  }
+
+  .status-box.sucesso { background: var(--go-l); color: var(--go); }
+  .status-box.alerta { background: var(--warn-l); color: var(--warn); }
+  .status-box.erro { background: var(--stop-l); color: var(--stop); }
+
+  .ponto-row { padding: 16px; background: var(--mist); border-radius: 16px; margin-bottom: 12px; border: 1px solid rgba(0,0,0,0.02); }
+  .ponto-name { font-weight: 600; font-size: 14px; margin-bottom: 12px; color: var(--ocean); display: block; }
+
+  .folga-toggle { display: flex; background: var(--ice); padding: 6px; border-radius: 12px; margin-bottom: 20px; }
+  .folga-toggle button {
+    flex: 1; padding: 10px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    background: transparent; color: var(--slate);
+  }
+  .folga-toggle button.active { background: #fff; color: var(--ocean); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+  .hidden { display: none; }
+
+  footer {
+    position: fixed; bottom: 0; width: 100%; max-width: 560px;
+    padding: 16px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+    z-index: 100; border-top: 1px solid rgba(0,0,0,0.05);
+  }
+
+  .loading-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.9); display: none; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 2000;
+  }
+
+  .spinner {
+    width: 40px; height: 40px; border: 4px solid var(--ice);
+    border-top: 4px solid var(--ocean); border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  #msg-feedback {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 16px 24px; border-radius: 12px; color: #fff; font-weight: 600;
+    z-index: 3000; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none;
+    width: 90%; max-width: 400px; text-align: center;
+    animation: slideDown 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  }
+
+  @keyframes slideDown { from { top: -100px; opacity: 0; } to { top: 20px; opacity: 1; } }
+
+  #btn-whats {
+    position: fixed; bottom: 90px; right: 20px;
+    background: #25D366; color: #fff; width: 56px; height: 56px;
+    border-radius: 50%; display: none; align-items: center; justify-content: center;
+    box-shadow: 0 4px 15px rgba(37,211,102,0.4); z-index: 900;
+    text-decoration: none; transition: transform 0.3s;
+  }
+  #btn-whats:active { transform: scale(1.1); }
+
+  .calendar-container { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); margin-bottom: 20px; }
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+  .cal-header h3 { margin: 0; font-family: var(--font-h); font-size: 16px; color: var(--ocean); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-day-label { font-size: 10px; font-weight: 700; color: var(--ghost); text-transform: uppercase; padding-bottom: 5px; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; border-radius: 8px; cursor: pointer; position: relative;
+    border: 1px solid transparent;
+  }
+  .cal-day:hover { background: var(--ice); }
+  .cal-day.today { border-color: var(--ocean); font-weight: 700; color: var(--ocean); }
+  .cal-day.has-data { background: var(--go-l); color: var(--go); font-weight: 600; }
+  .cal-day.has-anomalia { background: var(--stop-l); color: var(--stop); font-weight: 600; }
+  .cal-day.is-folga { background: var(--slate); color: #fff; opacity: 0.4; }
+  .cal-day.empty { cursor: default; }
+  .cal-day.empty:hover { background: none; }
 </style>
 </head>
 <body>
 
 <div id="loading" class="loading-overlay">
   <div class="spinner"></div>
-  <p id="loading-text" style="margin-top:16px;font-weight:600;color:var(--ocean)">Enviando dados...</p>
+  <p id="loading-text" style="margin-top:16px; font-weight: 600; color: var(--ocean)">Enviando dados...</p>
 </div>
 
 <div id="msg-feedback"></div>
@@ -96,8 +211,8 @@
         Identificação
       </div>
       <div class="input-group">
-        <label for="campo-funcionario">Nome do Funcionário</label>
-        <input type="text" id="campo-funcionario" placeholder="Quem está medindo?" required>
+        <label for="campo-funcionário">Nome do Funcionário</label>
+        <input type="text" id="campo-funcionário" placeholder="Quem está medindo?" required>
       </div>
       <div class="input-group">
         <label for="campo-data">Data da Medição</label>
@@ -105,14 +220,14 @@
       </div>
     </div>
 
-    <div id="sec-hidrometro" class="card hidden">
+    <div id="sec-hidrometro" class="card" style="display:none">
       <div class="card-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         Leitura do Hidrômetro
       </div>
       <div class="input-group">
-        <label for="campo-hidro">Valor Atual (m³)</label>
-        <input type="number" step="0.001" id="campo-hidro" placeholder="0.000">
+        <label for="hidrometro-leitura">Valor Atual (m³)</label>
+        <input type="number" step="0.001" id="hidrometro-leitura" placeholder="0.000">
       </div>
     </div>
 
@@ -125,7 +240,7 @@
       <div id="container-pontos">
         </div>
 
-      <div id="campo-ph-container" class="input-group hidden" style="margin-top:20px; padding-top:20px; border-top:1px solid #eee;">
+      <div id="campo-ph-container" class="input-group" style="display:none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
         <label for="campo-ph">Potencial Hidrogeniônico (pH)</label>
         <input type="number" step="0.1" id="campo-ph" placeholder="Ex: 7.2" oninput="atualizarBtn()">
       </div>
@@ -133,35 +248,35 @@
 
     <div id="sec-folga" class="card hidden">
       <div class="card-title">Motivo</div>
-      <select id="motivo-folga" onchange="atualizarBtn()">
+      <select id="campo-just" onchange="atualizarBtn()">
         <option value="FOLGA">Folga / Final de semana</option>
         <option value="FERIADO">Feriado</option>
         <option value="FALTA_ENERGIA">Falta de Energia</option>
-        <option value="MANUTENCAO">Manutenção no Sistema</option>
+        <option value="MANUTENÇÃO">Manutenção no Sistema</option>
         <option value="OUTRO">Outro motivo</option>
       </select>
-      <div class="input-group" style="margin-top:15px">
+      <div class="input-group" style="margin-top: 15px">
         <label>Observações</label>
-        <textarea id="obs-folga" rows="2" placeholder="Opcional..."></textarea>
+        <textarea id="campo-obs" rows="2" placeholder="Opcional..."></textarea>
       </div>
     </div>
 
     <div class="calendar-container">
       <div class="cal-header">
-        <button type="button" onclick="calNavegar(-1)" class="btn-secondary" style="padding:5px 10px; width:auto; border-radius:8px">←</button>
+        <button type="button" onclick="calNavegar(-1)" class="btn-secondary" style="padding: 5px 10px; width: auto; border-radius: 8px">←</button>
         <h3 id="cal-mes-ano">Mês Ano</h3>
-        <button type="button" onclick="calNavegar(1)" class="btn-secondary" style="padding:5px 10px; width:auto; border-radius:8px">→</button>
+        <button type="button" onclick="calNavegar(1)" class="btn-secondary" style="padding: 5px 10px; width: auto; border-radius: 8px">→</button>
       </div>
       <div id="cal-grid" class="cal-grid">
         </div>
-      <div style="margin-top:15px; display:flex; gap:10px; font-size:10px; font-weight:700; justify-content:center; text-transform:uppercase">
-        <span style="display:flex; align-items:center; gap:4px"><i style="width:8px; height:8px; background:var(--go); border-radius:2px"></i> OK</span>
-        <span style="display:flex; align-items:center; gap:4px"><i style="width:8px; height:8px; background:var(--stop); border-radius:2px"></i> ANOMALIA</span>
-        <span style="display:flex; align-items:center; gap:4px"><i style="width:8px; height:8px; background:var(--slate); border-radius:2px"></i> FOLGA</span>
+      <div style="margin-top: 15px; display: flex; gap: 10px; font-size: 10px; font-weight: 700; justify-content: center; text-transform: uppercase;">
+        <span style="display: flex; align-items: center; gap: 4px;"><i style="width: 8px; height: 8px; background: var(--go); border-radius: 2px;"></i> OK</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><i style="width: 8px; height: 8px; background: var(--stop); border-radius: 2px;"></i> ANOMALIA</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><i style="width: 8px; height: 8px; background: var(--slate); border-radius: 2px;"></i> FOLGA</span>
       </div>
     </div>
 
-    <button type="button" id="btn-relatorio" class="btn btn-secondary" onclick="gerarPDF()" style="margin-bottom:10px">
+    <button type="button" id="btn-relatorio" class="btn btn-secondary" onclick="gerarPDF()" style="margin-bottom: 10px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
       Gerar Relatório em PDF
     </button>
@@ -190,9 +305,10 @@ const TEM_HIDRO = params.get('hidro') === '1';
 const PONTOS_STR = params.get('pontos') || '';
 const PONTOS = PONTOS_STR ? PONTOS_STR.split(',') : (params.get('p') ? [params.get('p')] : ['SAÍDA DO FILTRO']);
 
+// URL do Apps Script
 const API_URL = "https://script.google.com/macros/s/AKfycbxoK8Wd_6_CidO7H996G0Bvj8O-tQpE7fQx-D6rV9uA3V8X9E8/exec";
 
-let MODO = 'util';
+let dayType = 'util'; // util | folga
 let calDataAtual = new Date();
 let historicoMes = {};
 
@@ -200,31 +316,35 @@ let historicoMes = {};
 // INICIALIZAÇÃO
 // ============================================================
 window.onload = function() {
+  inicializar();
+};
+
+function inicializar() {
   document.getElementById('cliente-header').innerText = CLIENTE;
   
-  // Bug 4: Fallback localStorage para 'funcionario'
-  const funcionarioSalvo = localStorage.getItem('filtratech_funcionario_nome') || localStorage.getItem('filtratech_funcionário_nome');
-  if (funcionarioSalvo) {
-    document.getElementById('campo-funcionario').value = funcionarioSalvo;
+  const nomeSalvo = localStorage.getItem('filtratech_funcionário_nome');
+  if (nomeSalvo) {
+    document.getElementById('campo-funcionário').value = nomeSalvo;
   }
 
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('campo-data').value = hoje;
 
-  // Bug 2: Bloco duplicado removido
+  // Hidrômetro
   if (TEM_HIDRO) {
-    document.getElementById('sec-hidrometro').classList.remove('hidden');
+    document.getElementById('sec-hidrometro').style.display = 'block';
   }
 
+  // pH
   if (TEM_PH) {
-    document.getElementById('campo-ph-container').classList.remove('hidden');
+    document.getElementById('campo-ph-container').style.display = 'block';
   }
 
   renderizarPontos();
   calIniciar();
   configurarWhatsApp();
   atualizarBtn();
-};
+}
 
 function renderizarPontos() {
   const container = document.getElementById('container-pontos');
@@ -249,21 +369,9 @@ function renderizarPontos() {
   });
 }
 
-function setModo(m) {
-  MODO = m;
-  document.getElementById('btn-dia-util').className = (m === 'util' ? 'active' : '');
-  document.getElementById('btn-folga').className = (m === 'folga' ? 'active' : '');
-  
-  document.getElementById('sec-medicao').className = (m === 'util' ? 'card' : 'card hidden');
-  document.getElementById('sec-folga').className = (m === 'folga' ? 'card' : 'card hidden');
-  
-  if (TEM_HIDRO) {
-    document.getElementById('sec-hidrometro').className = (m === 'util' ? 'card' : 'card hidden');
-  }
-  
-  atualizarBtn();
-}
-
+// ============================================================
+// LÓGICA DE AVALIAÇÃO DE CLORO
+// ============================================================
 function avalCloro(idx) {
   const inputS = document.getElementById(`cloro-saida-${idx}`);
   const inputC = document.getElementById(`cloro-consumo-${idx}`);
@@ -279,9 +387,15 @@ function avalCloro(idx) {
     return;
   }
 
+  // Lógica: se tiver consumo, avalia consumo. Se não, avalia saída.
   const val = isNaN(vC) ? vS : vC;
 
-  // Regra Filtratech: 0.2 a 2.0 (OK), 2.1 a 5.0 (ATENÇÃO), resto FORA
+  // Regras Filtratech:
+  // < 0.2 -> FORA
+  // 0.2 a 2.0 -> OK
+  // 2.1 a 5.0 -> ATENÇÃO
+  // > 5.0 -> FORA
+  
   if (val < 0.2 || val > 5.0) {
     res.innerText = "FORA DO PADRÃO";
     res.className = "status-box erro";
@@ -292,15 +406,31 @@ function avalCloro(idx) {
     res.innerText = "CONFORME (OK)";
     res.className = "status-box sucesso";
   }
+
+  atualizarBtn();
+}
+
+function setModo(m) {
+  dayType = m;
+  document.getElementById('btn-dia-util').className = (m === 'util' ? 'active' : '');
+  document.getElementById('btn-folga').className = (m === 'folga' ? 'active' : '');
+  
+  document.getElementById('sec-medicao').className = (m === 'util' ? 'card' : 'card hidden');
+  document.getElementById('sec-folga').className = (m === 'folga' ? 'card' : 'card hidden');
+  
+  if (TEM_HIDRO) {
+    document.getElementById('sec-hidrometro').style.display = (m === 'util' ? 'block' : 'none');
+  }
+  
   atualizarBtn();
 }
 
 function atualizarBtn() {
-  const func = document.getElementById('campo-funcionario').value.trim();
+  const func = document.getElementById('campo-funcionário').value.trim();
   const data = document.getElementById('campo-data').value;
   let pronto = (func !== "" && data !== "");
 
-  if (MODO === 'util') {
+  if (dayType === 'util') {
     let algumaMedicao = false;
     PONTOS.forEach((_, i) => {
       const vS = document.getElementById(`cloro-saida-${i}`).value;
@@ -314,16 +444,15 @@ function atualizarBtn() {
 }
 
 // ============================================================
-// ENVIO E RESET
+// ENVIO E PERSISTÊNCIA
 // ============================================================
 async function enviar() {
   const btn = document.getElementById('btn-enviar');
   const loader = document.getElementById('loading');
-  const func = document.getElementById('campo-funcionario').value.trim();
+  const func = document.getElementById('campo-funcionário').value.trim();
   const data = document.getElementById('campo-data').value;
   
-  // Bug 4: Salvar com nova chave 'funcionario'
-  localStorage.setItem('filtratech_funcionario_nome', func);
+  localStorage.setItem('filtratech_funcionário_nome', func);
   
   btn.disabled = true;
   loader.style.display = 'flex';
@@ -338,20 +467,21 @@ async function enviar() {
       funcionario: func
     };
 
-    if (MODO === 'folga') {
+    if (dayType === 'folga') {
+      const hidroFolga = TEM_HIDRO ? (document.getElementById('hidrometro-leitura')?.value || null) : null;
       payloads.push({
         ...base,
         ponto: "FOLGA",
-        cloro: document.getElementById('motivo-folga').value,
-        ph: document.getElementById('obs-folga').value || ""
+        cloro: document.getElementById('campo-just').value,
+        ph: document.getElementById('campo-obs').value || "",
+        hidrometro: hidroFolga || null
       });
     } else {
-      // Bug 3: Removida 'const hidro' externa desnecessária
       PONTOS.forEach((nome, i) => {
-        const s = document.getElementById(`cloro-saida-${i}`).value.replace(',', '.');
-        const c = document.getElementById(`cloro-consumo-${i}`).value.replace(',', '.');
-        const phVal = document.getElementById('campo-ph').value.replace(',', '.');
-        const hVal = document.getElementById('campo-hidro') ? document.getElementById('campo-hidro').value.replace(',', '.') : "";
+        const s = document.getElementById(`cloro-saida-${i}`).value;
+        const c = document.getElementById(`cloro-consumo-${i}`).value;
+        const phVal = document.getElementById('campo-ph').value;
+        const hidro = TEM_HIDRO ? (document.getElementById('hidrometro-leitura')?.value || null) : null;
         
         if (s || c) {
           payloads.push({
@@ -359,7 +489,7 @@ async function enviar() {
             ponto: nome,
             cloro: c || s,
             ph: phVal || "",
-            hidro: hVal || ""
+            hidrometro: hidro || null
           });
         }
       });
@@ -371,7 +501,7 @@ async function enviar() {
     }
 
     feedback("Dados salvos com sucesso!", "var(--go)");
-    resetForm();
+    reset();
     calCarregar();
   } catch (e) {
     feedback("Erro ao salvar dados.", "var(--stop)");
@@ -380,24 +510,31 @@ async function enviar() {
   }
 }
 
-function resetForm() {
-  const form = document.getElementById('form-cloro');
-  form.reset();
-  
-  // Bug 5: Restaurar funcionário após reset
-  const funcionarioSalvo = localStorage.getItem('filtratech_funcionario_nome') || localStorage.getItem('filtratech_funcionário_nome');
-  if (funcionarioSalvo) {
-    document.getElementById('campo-funcionario').value = funcionarioSalvo;
+function reset() {
+  ['campo-funcionário', 'campo-just', 'campo-obs', 'hidrometro-leitura'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  // Restaurar nome salvo do funcionário
+  const nomeSalvoReset = localStorage.getItem('filtratech_funcionário_nome');
+  if (nomeSalvoReset) {
+    document.getElementById('campo-funcionário').value = nomeSalvoReset;
   }
 
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('campo-data').value = hoje;
   
   PONTOS.forEach((_, i) => {
+    document.getElementById(`cloro-saida-${i}`).value = "";
+    document.getElementById(`cloro-consumo-${i}`).value = "";
     const res = document.getElementById(`resultado-cloro-${i}`);
-    if(res) { res.innerText = "--"; res.className = "status-box"; }
+    res.innerText = "--"; res.className = "status-box";
   });
   
+  const phEl = document.getElementById('campo-ph');
+  if (phEl) phEl.value = "";
+
   setModo('util');
 }
 
@@ -468,7 +605,7 @@ function preencherData(d) {
 }
 
 // ============================================================
-// PDF (jsPDF)
+// RELATÓRIO PDF (jsPDF)
 // ============================================================
 async function gerarPDF() {
   const { jsPDF } = window.jspdf;
@@ -497,7 +634,6 @@ async function gerarPDF() {
   const body = [];
   let anomalias = 0;
   let total = 0;
-  let semMed = 0;
 
   const datasOrdenadas = Object.keys(historicoMes).sort();
   datasOrdenadas.forEach(dt => {
@@ -510,21 +646,13 @@ async function gerarPDF() {
       d.medicoes.forEach(m => {
         total++;
         const val = parseFloat(String(m.cloro).replace(',','.'));
-        const phVal = parseFloat(String(m.ph).replace(',','.'));
         
-        // Bug 6: Lógica PDF atualizada conforme Filtratech (0.2 a 5.0)
         let status = 'OK';
         if (val < 0.2 || val > 5.0) {
            status = 'FORA';
            anomalias++;
         } else if (val > 2.0) {
            status = 'ATENÇÃO';
-        }
-
-        // Checar pH
-        if (phVal && (phVal < 6.0 || phVal > 9.5)) {
-           if (status !== 'FORA') anomalias++;
-           status = 'FORA (pH)';
         }
 
         body.push([
@@ -549,7 +677,7 @@ async function gerarPDF() {
     headStyles: { fillColor: [27, 94, 32] },
     didDrawCell: (data) => {
       if (data.section === 'body' && data.column.index === 5) {
-        if (data.cell.raw.includes('FORA')) doc.setTextColor(185, 28, 28);
+        if (data.cell.raw === 'FORA') doc.setTextColor(185, 28, 28);
         else if (data.cell.raw === 'ATENÇÃO') doc.setTextColor(180, 83, 9);
         else if (data.cell.raw === 'OK') doc.setTextColor(27, 122, 64);
       }
@@ -573,23 +701,23 @@ async function gerarPDF() {
     doc.text('Página ' + i + ' de ' + pageCount, W - margem - 15, 285);
   }
 
-  doc.save(`Relatorio_Filtratech_${CLIENTE.replace(/\s+/g,'_')}.pdf`);
+  const nomeArq = 'Filtratech_' + (CLIENTE||'relatorio').replace(/\s+/g,'-') + '_' + dataIni + '_' + dataFim + '.pdf';
+  doc.save(nomeArq);
 }
 
 // ============================================================
 // WHATSAPP
 // ============================================================
 function configurarWhatsApp() {
-  const num = GESTAO === 'G01' ? '5512974032478' : '551151250766';
-  const msg = encodeURIComponent(`Olá! Sou funcionário do cliente ${CLIENTE} e gostaria de falar sobre o monitoramento de cloro.`);
-  const btn = document.getElementById('btn-whats');
+  var num = GESTAO === 'G01' ? '5512974032478' : '551151250766';
+  var msg = encodeURIComponent('Olá! Sou funcionário do cliente ' + (CLIENTE || '') + ' e gostaria de falar sobre o monitoramento de cloro.');
+  var btn = document.getElementById('btn-whats');
   if (btn) {
-    btn.href = `https://wa.me/${num}?text=${msg}`;
+    btn.href = 'https://wa.me/' + num + '?text=' + msg;
     btn.style.display = 'flex';
   }
 }
 
-// Bug 1: Versão duplicada de avalCloro no final do arquivo REMOVIDA.
 </script>
 </body>
 </html>
