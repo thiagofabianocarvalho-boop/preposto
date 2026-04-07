@@ -1224,6 +1224,34 @@ function configurarWhatsApp() {
     btn.style.display = 'flex';
   }
 }
+function avalCloro(i) {
+    const input = document.getElementById('cloro-consumo-' + i) || document.getElementById('cloro-saida-' + i);
+    const res = document.getElementById('resultado-cloro-' + i);
+    if (!input || !res) return;
+
+    const cloro = parseFloat(input.value.replace(',', '.'));
+
+    if (isNaN(cloro) || input.value === "") {
+        res.innerText = "--";
+        res.className = "status-box";
+        return;
+    }
+
+    // NOVA REGRA FILTRATECH
+    if (cloro < 0.2 || cloro > 5.0) {
+        res.innerText = "FORA";
+        res.className = "status-box erro"; 
+    } 
+    else if (cloro > 3.5) {
+        res.innerText = "ATENÇÃO";
+        res.className = "status-box alerta"; 
+    } 
+    else {
+        res.innerText = "ATENDENDO";
+        res.className = "status-box sucesso"; 
+    }
+}
+  
 
 // Registrar Service Worker (PWA)
 if ('serviceWorker' in navigator) {
