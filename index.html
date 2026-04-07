@@ -1037,7 +1037,7 @@ function fecharModalRelatorio(e) {
   }
 }
 
-var status = (val < 0.2 || val > 5.0) ? 'FORA' : (val > 3.5 ? 'ATENÇÃO' : 'OK');
+  var status = (val < 0.2 || val > 5.0) ? 'FORA' : (val > 3.5 ? 'ATENÇÃO' : 'OK');
   var btn = document.getElementById('btn-gerar-pdf');
   btn.disabled = true;
   btn.textContent = '⏳ Buscando dados...';
