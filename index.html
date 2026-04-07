@@ -1224,7 +1224,7 @@ function configurarWhatsApp() {
     btn.style.display = 'flex';
   }
 }
- function avalCloro(i) {
+function avalCloro(i) {
     const input = document.getElementById('cloro-consumo-' + i) || document.getElementById('cloro-saida-' + i);
     const res = document.getElementById('resultado-cloro-' + i);
     if (!input || !res) return;
@@ -1237,7 +1237,7 @@ function configurarWhatsApp() {
         return;
     }
 
-    // REGRA FILTRATECH ATUALIZADA
+    // REGRA FILTRATECH (0.2 a 5.0)
     if (cloro < 0.2 || cloro > 5.0) {
         res.innerText = "FORA";
         res.className = "status-box erro"; 
