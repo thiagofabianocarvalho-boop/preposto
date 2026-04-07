@@ -1125,7 +1125,21 @@ function montarPDF(dados, dataIni, dataFim) {
   var cabecalho = [['Data','Tipo','Ponto','Cl Saída (mg/L)','Cl Consumo (mg/L)','pH Saída','pH Consumo','Hidrô (m³)','Status']];
 
   var linhas = registros.map(function(r) {
-    var status = r.fora === 'SIM' ? 'FORA' : (r.tipoDia === 'nao-mediu' ? 'SEM MED.' : (r.tipoDia === 'util' ? 'OK' : 'FOLGA'));
+    var status;
+    if (r.fora === 'SIM') {
+      status = 'FORA';
+    } else if (r.tipoDia === 'nao-mediu') {
+      status = 'SEM MED.';
+    } else if (r.tipoDia === 'util') {
+      // Verificar se algum valor está acima do recomendado (2,0) mas dentro do permitido (5,0)
+      var cs = parseFloat(r.cloroSaida);
+      var cc = parseFloat(r.cloroConsumo);
+      var altoSaida   = !isNaN(cs) && cs > 2.0 && cs <= 5.0;
+      var altoConsumo = !isNaN(cc) && cc > 2.0 && cc <= 5.0;
+      status = (altoSaida || altoConsumo) ? 'ATENÇÃO' : 'OK';
+    } else {
+      status = 'FOLGA';
+    }
     return [
       fmtData(r.data),
       r.tipoDia === 'util' ? 'Medição' : r.tipoDia === 'nao-mediu' ? 'Sem medição' : 'Folga',
@@ -1167,6 +1181,10 @@ function montarPDF(dados, dataIni, dataFim) {
         if (data.cell.raw === 'FORA') {
           data.cell.styles.fillColor = [254,242,242];
           data.cell.styles.textColor = [185,28,28];
+          data.cell.styles.fontStyle = 'bold';
+        } else if (data.cell.raw === 'ATENÇÃO') {
+          data.cell.styles.fillColor = [254,243,199];
+          data.cell.styles.textColor = [180,83,9];
           data.cell.styles.fontStyle = 'bold';
         } else if (data.cell.raw === 'SEM MED.') {
           data.cell.styles.fillColor = [254,243,199];
