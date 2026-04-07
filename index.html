@@ -1131,12 +1131,13 @@ function montarPDF(dados, dataIni, dataFim) {
     } else if (r.tipoDia === 'util') {
       var cs = parseFloat(r.cloroSaida);
       var cc = parseFloat(r.cloroConsumo);
-      var baixo  = (!isNaN(cs) && cs < 0.2) || (!isNaN(cc) && cc < 0.2);
-      var critico = (!isNaN(cs) && cs > 5.0) || (!isNaN(cc) && cc > 5.0);
-      var alto   = (!isNaN(cs) && cs > 2.0 && cs <= 5.0) || (!isNaN(cc) && cc > 2.0 && cc <= 5.0);
-      if (baixo || critico) status = 'FORA';
-      else if (alto)        status = 'ATENÇÃO';
-      else                  status = 'OK';
+      // Abaixo do mínimo (<0.2) ou acima do máximo (>5.0) = FORA
+      var fora   = (!isNaN(cs) && (cs < 0.2 || cs > 5.0)) || (!isNaN(cc) && (cc < 0.2 || cc > 5.0));
+      // Acima do recomendado (>2.0) mas dentro do permitido (<=5.0) = ATENÇÃO
+      var atencao = !fora && ((!isNaN(cs) && cs > 2.0) || (!isNaN(cc) && cc > 2.0));
+      if (fora)        status = 'FORA';
+      else if (atencao) status = 'ATENÇÃO';
+      else              status = 'OK';
     } else {
       status = 'FOLGA';
     }
