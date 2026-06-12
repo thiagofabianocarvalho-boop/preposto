@@ -1079,36 +1079,8 @@ async function gerarPDF() {
 function montarPDF(dados, dataIni, dataFim) {
   var { jsPDF } = window.jspdf;
   var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
   var W = doc.internal.pageSize.getWidth();
   var margem = 14;
-
-  // --- CABEÇALHO ---
-  doc.setFillColor(27, 94, 32); // verde escuro
-  doc.rect(0, 0, W, 32, 'F');
-
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica','bold');
-  doc.text('Filtratech Ambiental', margem, 13);
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica','normal');
-  doc.text('Relatório de Monitoramento de Cloro Residual Livre', margem, 20);
-  doc.text('Portaria GM/MS nº 888/2021', margem, 26);
-
-  // --- INFO DO CLIENTE ---
-  doc.setTextColor(30,30,30);
-  doc.setFillColor(240,248,240);
-  doc.rect(0, 32, W, 22, 'F');
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica','bold');
-  doc.text(CLIENTE || '', margem, 41);
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica','normal');
-  doc.setTextColor(80,80,80);
 
   var fmtData = function(s) {
     if (!s) return '';
@@ -1116,118 +1088,201 @@ function montarPDF(dados, dataIni, dataFim) {
     return p[2]+'/'+p[1]+'/'+p[0];
   };
 
-  doc.text('Gestão: ' + (GESTAO === 'G01' ? 'Gestão 01' : 'Gestão 02'), margem, 48);
-  doc.text('Período: ' + fmtData(dataIni) + ' a ' + fmtData(dataFim), 80, 48);
+  function calcStatus(cs, cc) {
+    var s = parseFloat(cs), c = parseFloat(cc);
+    var fora = (!isNaN(s)&&(s<0.2||s>5.0))||(!isNaN(c)&&(c<0.2||c>5.0));
+    var atencao = !fora&&((!isNaN(s)&&s>2.0)||(!isNaN(c)&&c>2.0));
+    if (fora) return 'FORA';
+    if (atencao) return 'ATENÇÃO';
+    return 'OK';
+  }
 
-  // --- TABELA ---
+  // --- CABEÇALHO ---
+  doc.setFillColor(27,94,32);
+  doc.rect(0,0,W,32,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('Filtratech Ambiental', margem, 13);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Relatório de Monitoramento de Cloro Residual Livre', margem, 20);
+  doc.text('Portaria GM/MS nº 888/2021', margem, 26);
+
+  // --- INFO DO CLIENTE ---
+  doc.setTextColor(30,30,30);
+  doc.setFillColor(240,248,240);
+  doc.rect(0,32,W,22,'F');
+  doc.setFontSize(11); doc.setFont('helvetica','bold');
+  doc.text(CLIENTE||'', margem, 41);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.setTextColor(80,80,80);
+  doc.text('Gestão: '+(GESTAO==='G01'?'Gestão 01':'Gestão 02'), margem, 48);
+  doc.text('Período: '+fmtData(dataIni)+' a '+fmtData(dataFim), 90, 48);
+
   var registros = dados.registros || [];
 
-  var cabecalho = [['Data','Tipo','Ponto','Cl Saída (mg/L)','Cl Consumo (mg/L)','pH Saída','pH Consumo','Hidrômetro (m³)','Status']];
+  // Extrair lista de pontos únicos na ordem em que aparecem
+  var pontosUnicos = [];
+  registros.forEach(function(r) {
+    if (r.ponto && pontosUnicos.indexOf(r.ponto) === -1) pontosUnicos.push(r.ponto);
+  });
 
-  var linhas = registros.map(function(r) {
-    var status;
-    if (r.tipoDia === 'nao-mediu') {
-      status = 'SEM MED.';
-    } else if (r.tipoDia === 'util') {
-      var cs = parseFloat(r.cloroSaida);
-      var cc = parseFloat(r.cloroConsumo);
-      // Abaixo do mínimo (<0.2) ou acima do máximo (>5.0) = FORA
-      var fora   = (!isNaN(cs) && (cs < 0.2 || cs > 5.0)) || (!isNaN(cc) && (cc < 0.2 || cc > 5.0));
-      // Acima do recomendado (>2.0) mas dentro do permitido (<=5.0) = ATENÇÃO
-      var atencao = !fora && ((!isNaN(cs) && cs > 2.0) || (!isNaN(cc) && cc > 2.0));
-      if (fora)        status = 'FORA';
-      else if (atencao) status = 'ATENÇÃO';
-      else              status = 'OK';
-    } else {
-      status = 'FOLGA';
-    }
-    return [
-      fmtData(r.data),
-      r.tipoDia === 'util' ? 'Medição' : r.tipoDia === 'nao-mediu' ? 'Sem medição' : 'Folga',
-      r.ponto || '',
-      r.cloroSaida   || '',
-      r.cloroConsumo || '',
-      r.phSaida      || '',
-      r.phConsumo    || '',
-      r.hidrometro   || '',
-      status
-    ];
+  // Detectar se algum ponto tem pH ou hidrômetro
+  var temPH    = registros.some(function(r){ return r.phSaida||r.phConsumo; });
+  var temHidro = registros.some(function(r){ return r.hidrometro; });
+
+  // Agrupar registros por data+tipoDia
+  var porData = {};
+  registros.forEach(function(r) {
+    var k = r.data+'|'+(r.tipoDia||'util');
+    if (!porData[k]) porData[k] = { data: r.data, tipoDia: r.tipoDia, pontos: {}, hidro: r.hidrometro||'' };
+    porData[k].pontos[r.ponto] = r;
+    if (r.hidrometro) porData[k].hidro = r.hidrometro;
+  });
+
+  // Ordenar por data
+  var chaves = Object.keys(porData).sort(function(a,b){ return a.localeCompare(b); });
+
+  // Montar cabeçalho: Data | Tipo | [para cada ponto: Cl / pH? / Status] | Hidrô?
+  var cabLinha1 = ['Data','Tipo'];
+  var cabLinha2 = ['',''];
+  var colStyles = {
+    0: { cellWidth: 20 },
+    1: { cellWidth: 16 }
+  };
+  var colIdx = 2;
+  var pontoColMap = {}; // ponto -> índice inicial da coluna
+
+  // Calcular largura disponível para os pontos
+  var larguraFixa = 20 + 16 + (temHidro ? 18 : 0);
+  var larguraPontos = W - margem*2 - larguraFixa;
+  // Colunas por ponto: Cl + (pH?) + Status
+  var colsPorPonto = temPH ? 3 : 2;
+  var largPorPonto = Math.floor(larguraPontos / (pontosUnicos.length * colsPorPonto));
+  var largCl = Math.max(14, Math.floor(largPorPonto * 0.45));
+  var largPH = Math.max(12, Math.floor(largPorPonto * 0.3));
+  var largSt = Math.max(14, Math.floor(largPorPonto * 0.4));
+
+  pontosUnicos.forEach(function(ponto) {
+    var nomeAbrev = ponto.length > 18 ? ponto.substring(0,16)+'...' : ponto;
+    var span = temPH ? 3 : 2;
+    cabLinha1.push(nomeAbrev);
+    for (var s=1; s<span; s++) cabLinha1.push('');
+    cabLinha2.push('Cloro'); 
+    if (temPH) cabLinha2.push('pH');
+    cabLinha2.push('Status');
+
+    pontoColMap[ponto] = colIdx;
+    colStyles[colIdx] = { cellWidth: largCl, halign: 'center' }; colIdx++;
+    if (temPH) { colStyles[colIdx] = { cellWidth: largPH, halign: 'center' }; colIdx++; }
+    colStyles[colIdx] = { cellWidth: largSt, halign: 'center' }; colIdx++;
+  });
+
+  if (temHidro) {
+    cabLinha1.push('Hidrômetro');
+    cabLinha2.push('(m³)');
+    colStyles[colIdx] = { cellWidth: 18, halign: 'center' };
+  }
+
+  var cabecalho = [cabLinha1, cabLinha2];
+
+  // Montar linhas
+  var linhas = chaves.map(function(k) {
+    var row = porData[k];
+    var tipo = row.tipoDia==='util'?'Medição':row.tipoDia==='nao-mediu'?'Sem med.':'Folga';
+    var linha = [fmtData(row.data), tipo];
+
+    pontosUnicos.forEach(function(ponto) {
+      var r = row.pontos[ponto];
+      if (!r || row.tipoDia !== 'util') {
+        linha.push('');
+        if (temPH) linha.push('');
+        linha.push(row.tipoDia==='nao-mediu'?'SEM MED.':row.tipoDia!=='util'?'FOLGA':'');
+      } else {
+        linha.push(r.cloroConsumo||r.cloroSaida||'');
+        if (temPH) linha.push(r.phConsumo||r.phSaida||'');
+        linha.push(calcStatus(r.cloroSaida, r.cloroConsumo));
+      }
+    });
+
+    if (temHidro) linha.push(row.hidro||'');
+    return linha;
   });
 
   if (linhas.length === 0) {
-    linhas = [['Nenhum registro encontrado no período','','','','','','','','']];
+    linhas = [['Nenhum registro encontrado no período']];
   }
+
+  // Índices das colunas de status (para colorir)
+  var statusCols = [];
+  pontosUnicos.forEach(function(p) {
+    var base = pontoColMap[p];
+    statusCols.push(base + (temPH ? 2 : 1));
+  });
 
   doc.autoTable({
     head: cabecalho,
     body: linhas,
     startY: 58,
     margin: { left: margem, right: margem },
-    styles: { fontSize: 8, cellPadding: 2.5, valign: 'middle' },
-    headStyles: { fillColor: [27,94,32], textColor: 255, fontStyle: 'bold', fontSize: 8, cellPadding: 3, overflow: 'linebreak', minCellHeight: 8 },
-    columnStyles: {
-      0: { cellWidth: 20 },
-      1: { cellWidth: 18 },
-      2: { cellWidth: 85 },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 22, halign: 'center' },
-      5: { cellWidth: 16, halign: 'center' },
-      6: { cellWidth: 16, halign: 'center' },
-      7: { cellWidth: 18, halign: 'center' },
-      8: { cellWidth: 20, halign: 'center' }
-    },
+    styles: { fontSize: 7.5, cellPadding: 2, valign: 'middle', overflow: 'hidden' },
+    headStyles: { fillColor: [27,94,32], textColor: 255, fontStyle: 'bold', fontSize: 7, cellPadding: 2 },
+    columnStyles: colStyles,
     alternateRowStyles: { fillColor: [245,250,245] },
     didParseCell: function(data) {
-      if (data.column.index === 8 && data.section === 'body') {
-        if (data.cell.raw === 'FORA') {
-          data.cell.styles.fillColor = [254,242,242];
-          data.cell.styles.textColor = [185,28,28];
-          data.cell.styles.fontStyle = 'bold';
-        } else if (data.cell.raw === 'ATENÇÃO') {
-          data.cell.styles.fillColor = [254,243,199];
-          data.cell.styles.textColor = [180,83,9];
-          data.cell.styles.fontStyle = 'bold';
-        } else if (data.cell.raw === 'SEM MED.') {
-          data.cell.styles.fillColor = [254,243,199];
-          data.cell.styles.textColor = [180,83,9];
-        } else if (data.cell.raw === 'OK') {
-          data.cell.styles.textColor = [27,94,32];
-          data.cell.styles.fontStyle = 'bold';
-        }
+      if (data.section === 'head' && data.row.index === 0) {
+        // Mesclar células de ponto (visual — usando span via bgcolor diferente)
+        data.cell.styles.halign = 'center';
+      }
+      if (data.section === 'body' && statusCols.indexOf(data.column.index) !== -1) {
+        var v = data.cell.raw;
+        if (v==='FORA')     { data.cell.styles.fillColor=[254,242,242]; data.cell.styles.textColor=[185,28,28]; data.cell.styles.fontStyle='bold'; }
+        else if (v==='ATENÇÃO') { data.cell.styles.fillColor=[254,243,199]; data.cell.styles.textColor=[180,83,9]; data.cell.styles.fontStyle='bold'; }
+        else if (v==='SEM MED.') { data.cell.styles.fillColor=[254,243,199]; data.cell.styles.textColor=[180,83,9]; }
+        else if (v==='OK')  { data.cell.styles.textColor=[27,94,32]; data.cell.styles.fontStyle='bold'; }
+        else if (v==='FOLGA') { data.cell.styles.textColor=[148,163,184]; }
       }
     }
   });
 
   // --- RESUMO ---
   var finalY = doc.lastAutoTable.finalY + 8;
-  var total    = registros.filter(function(r){return r.tipoDia==='util';}).length;
-  var anomalias = registros.filter(function(r){return r.fora==='SIM';}).length;
-  var semMed   = registros.filter(function(r){return r.tipoDia==='nao-mediu';}).length;
+  var totalMed  = registros.filter(function(r){return r.tipoDia==='util';}).length;
+  var semMed    = chaves.filter(function(k){return porData[k].tipoDia==='nao-mediu';}).length;
+  var comFora   = chaves.filter(function(k){
+    if (porData[k].tipoDia!=='util') return false;
+    return Object.values(porData[k].pontos).some(function(r){
+      return calcStatus(r.cloroSaida,r.cloroConsumo)==='FORA';
+    });
+  }).length;
+  var comAtencao = chaves.filter(function(k){
+    if (porData[k].tipoDia!=='util') return false;
+    return Object.values(porData[k].pontos).some(function(r){
+      return calcStatus(r.cloroSaida,r.cloroConsumo)==='ATENÇÃO';
+    });
+  }).length;
 
-  doc.setFillColor(240,248,240);
-  doc.roundedRect(margem, finalY, W-margem*2, 20, 3, 3, 'F');
-  doc.setFontSize(8);
-  doc.setTextColor(50,50,50);
-  doc.setFont('helvetica','bold');
-  doc.text('RESUMO DO PERÍODO', margem+4, finalY+6);
-  doc.setFont('helvetica','normal');
-  doc.text('Total de medições: ' + total, margem+4, finalY+12);
-  doc.text('Anomalias: ' + anomalias, margem+55, finalY+12);
-  doc.text('Dias sem medição: ' + semMed, margem+100, finalY+12);
+  if (finalY + 22 < 200) {
+    doc.setFillColor(240,248,240);
+    doc.roundedRect(margem, finalY, W-margem*2, 22, 3, 3, 'F');
+    doc.setFontSize(8); doc.setTextColor(50,50,50); doc.setFont('helvetica','bold');
+    doc.text('RESUMO DO PERÍODO', margem+4, finalY+7);
+    doc.setFont('helvetica','normal');
+    doc.text('Total de registros: '+totalMed, margem+4, finalY+14);
+    doc.text('Dias sem medição: '+semMed, margem+55, finalY+14);
+    doc.text('Dias com FORA: '+comFora, margem+110, finalY+14);
+    doc.text('Dias com ATENÇÃO: '+comAtencao, margem+160, finalY+14);
+  }
 
   // --- RODAPÉ ---
   var pageCount = doc.internal.getNumberOfPages();
   for (var i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(150,150,150);
-    doc.setFont('helvetica','normal');
+    doc.setFontSize(7); doc.setTextColor(150,150,150); doc.setFont('helvetica','normal');
     doc.text('Filtratech Ambiental — Monitoramento conforme Portaria GM/MS nº 888/2021', margem, 205);
-    doc.text('Gerado em ' + new Date().toLocaleDateString('pt-BR') + ' — Página ' + i + ' de ' + pageCount, W-margem, 205, { align: 'right' });
+    doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' — Página '+i+' de '+pageCount, W-margem, 205, { align: 'right' });
   }
 
-  // Salvar
-  var nomeArq = 'Filtratech_' + (CLIENTE||'relatorio').replace(/\s+/g,'-') + '_' + dataIni + '_' + dataFim + '.pdf';
+  var nomeArq = 'Filtratech_'+(CLIENTE||'relatorio').replace(/\s+/g,'-')+'_'+dataIni+'_'+dataFim+'.pdf';
   doc.save(nomeArq);
 }
 
