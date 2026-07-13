@@ -410,21 +410,38 @@ async function inicializar() {
     }
     document.getElementById('loading-msg').style.display = 'none';
   }
-  // --- Formato antigo: ?c=...&g=...&ph=...&pontos=... ---
+// --- Formato antigo: ?c=...&g=...&ph=...&pontos=... ---
   else if (CLIENTE_URL && GESTAO_URL) {
     CLIENTE        = CLIENTE_URL;
     GESTAO         = GESTAO_URL;
     TEM_PH         = TEM_PH_URL;
     TEM_HIDRO = TEM_HIDRO_URL;
     PONTOS         = PONTOS_URL;
+    // Salva para quando o app abrir pelo ícone instalado, sem parâmetros na URL
+    try {
+      localStorage.setItem('filtratech_cliente', JSON.stringify({
+        cliente: CLIENTE, gestao: GESTAO, ph: TEM_PH, hidro: TEM_HIDRO, pontos: PONTOS
+      }));
+    } catch(e) {}
   }
-  // --- Modo teste (sem parâmetros) ---
+  // --- Sem parâmetros na URL: tenta recuperar do localStorage (ex: ícone instalado) ---
   else {
-    CLIENTE = null;
-    GESTAO  = 'G01';
-    TEM_PH  = false;
-    TEM_HIDRO = false;
-    PONTOS         = ['Ponto de Consumo'];
+    let salvo = null;
+    try { salvo = JSON.parse(localStorage.getItem('filtratech_cliente')); } catch(e) {}
+    if (salvo && salvo.cliente) {
+      CLIENTE   = salvo.cliente;
+      GESTAO    = salvo.gestao || 'G01';
+      TEM_PH    = !!salvo.ph;
+      TEM_HIDRO = !!salvo.hidro;
+      PONTOS    = Array.isArray(salvo.pontos) && salvo.pontos.length ? salvo.pontos : ['Ponto de Consumo'];
+    } else {
+      // Nunca abriu por um link de cliente neste celular — modo teste mesmo
+      CLIENTE = null;
+      GESTAO  = 'G01';
+      TEM_PH  = false;
+      TEM_HIDRO = false;
+      PONTOS         = ['Ponto de Consumo'];
+    }
   }
 
   // Se PONTOS estiver vazio, usa um ponto padrão
