@@ -146,6 +146,32 @@
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function() {
+  const params = new URLSearchParams(location.search);
+  const c = params.get('c');
+  if (!c) return; // sem cliente na URL, mantém o manifest padrão
+
+  const g = params.get('g') || 'G01';
+  const ph = params.get('ph') || '0';
+  const hidro = params.get('hidro') || '0';
+  const pontos = params.get('pontos') || '';
+
+  let startUrl = './?c=' + encodeURIComponent(c) + '&g=' + encodeURIComponent(g) + '&ph=' + ph + '&hidro=' + hidro;
+  if (pontos) startUrl += '&pontos=' + encodeURIComponent(pontos);
+
+  fetch('manifest.json')
+    .then(r => r.json())
+    .then(manifest => {
+      manifest.start_url = startUrl;
+      manifest.scope = './';
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      document.querySelector('link[rel="manifest"]').setAttribute('href', url);
+    })
+    .catch(function(){});
+})();
+</script>
 </head>
 <body>
 <div class="wrapper">
