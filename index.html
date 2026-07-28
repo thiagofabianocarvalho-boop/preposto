@@ -865,7 +865,7 @@ async function enviar() {
       const payload = {
         cliente: clienteNome,
         gestao:  GESTAO,
-        funcionário,
+        preposto: funcionário,
         data,
         tipoDia: dayType,
         ponto:   nomeRotEnvio || ponto,
@@ -891,7 +891,7 @@ async function enviar() {
     const payload = {
       cliente: clienteNome,
       gestao:  GESTAO,
-      funcionário,
+      preposto: funcionário,
       data,
       tipoDia: dayType,
       ponto:   PONTOS[0] || '',
