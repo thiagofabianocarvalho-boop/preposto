@@ -394,6 +394,7 @@ const CLORO_MIN=0.2, CLORO_MAX=2.0, PH_MIN=6.0, PH_MAX=9.5;
 const FILA_KEY   = 'filtratech_fila_pendente';
 const TIMEOUT_MS = 10000;
 let processandoFila = false;
+let batchPendenteAtual = null; // id do lote da tela de sucesso atualmente exibida (se estiver pendente)
 
 function lerFila() {
   try { return JSON.parse(localStorage.getItem(FILA_KEY) || '[]'); } catch(e) { return []; }
@@ -401,9 +402,9 @@ function lerFila() {
 function salvarFila(fila) {
   try { localStorage.setItem(FILA_KEY, JSON.stringify(fila)); } catch(e) {}
 }
-function adicionarNaFila(payload) {
+function adicionarNaFila(payload, batchId) {
   const fila = lerFila();
-  fila.push({ payload, _salvoEm: new Date().toISOString() });
+  fila.push({ payload, _salvoEm: new Date().toISOString(), _batchId: batchId || null });
   salvarFila(fila);
 }
 function quantidadePendente() {
@@ -463,6 +464,16 @@ async function processarFila() {
   salvarFila(restantes);
   processandoFila = false;
 
+  // Se o lote correspondente à tela de sucesso aberta agora foi todo confirmado,
+  // atualiza a tela na hora — sem exigir nenhuma ação do preposto.
+  if (batchPendenteAtual) {
+    const aindaPendente = restantes.some(item => item._batchId === batchPendenteAtual);
+    if (!aindaPendente) {
+      confirmarTelaSucesso();
+      batchPendenteAtual = null;
+    }
+  }
+
   if (bar) {
     if (restantes.length === 0) {
       bar.className = 'synced';
@@ -472,6 +483,24 @@ async function processarFila() {
       atualizarBadgePendente();
     }
   }
+}
+
+// Atualiza a tela de "salvo no aparelho" para "enviado" assim que a fila confirmar o envio,
+// sem exigir que o preposto faça nada. Só age se a tela ainda estiver mostrando a pendência.
+function confirmarTelaSucesso() {
+  const successDiv = document.getElementById('success');
+  if (!successDiv || successDiv.style.display !== 'block') return;
+  const icon = document.getElementById('s-icon');
+  if (!icon || icon.textContent !== '📵') return; // tela já não é mais a de pendência
+
+  icon.textContent = '✅';
+  icon.style.background = 'var(--go-l)';
+  document.getElementById('s-titulo').textContent = 'Enviado agora!';
+  document.getElementById('s-texto').innerHTML = 'A internet voltou e o registro que estava salvo neste celular foi enviado com sucesso.<br>Em caso de anomalia, o gestor já foi notificado.';
+  const tag = document.getElementById('s-tag');
+  tag.style.background = 'var(--go-l)';
+  tag.style.color = 'var(--go)';
+  tag.innerHTML = '✓ Enviado às <span>' + new Date().toLocaleTimeString('pt-BR') + '</span>';
 }
 
 window.addEventListener('online', processarFila);
@@ -1023,22 +1052,25 @@ async function enviar() {
 
   // Tenta enviar cada payload. O que não confirmar (sem internet, timeout ou falha)
   // cai na fila local e é reenviado automaticamente depois — nunca se perde.
+  const meuBatchId = 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   let algumEnfileirado = false;
 
   if (URL_SCRIPT !== 'SUA_URL_DO_APPS_SCRIPT') {
     for (const payload of payloads) {
       if (!navigator.onLine) {
-        adicionarNaFila(payload);
+        adicionarNaFila(payload, meuBatchId);
         algumEnfileirado = true;
         continue;
       }
       const ok = await enviarComTimeout(payload);
       if (!ok) {
-        adicionarNaFila(payload);
+        adicionarNaFila(payload, meuBatchId);
         algumEnfileirado = true;
       }
     }
   }
+
+  batchPendenteAtual = algumEnfileirado ? meuBatchId : null;
 
   atualizarBadgePendente();
   mostrarSucesso(algumEnfileirado);
@@ -1090,6 +1122,7 @@ function mostrarSucesso(enfileirado) {
 // ============================================================
 function reset() {
   document.getElementById('form-area').style.display = 'block';
+  batchPendenteAtual = null;
   if (CLIENTE) { calIniciar(); document.getElementById('btn-relatorio').style.display='flex'; }
   configurarWhatsApp();
   document.getElementById('success').style.display   = 'none';
