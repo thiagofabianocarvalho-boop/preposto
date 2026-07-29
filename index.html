@@ -85,6 +85,9 @@
   .success h2{font-family:'Fraunces',serif;font-size:21px;color:var(--ink);margin-bottom:7px;}
   .success p{font-size:13px;color:var(--slate);line-height:1.6;}
   .s-tag{display:inline-block;background:var(--go-l);color:var(--go);font-size:11px;font-weight:600;padding:4px 12px;border-radius:100px;margin-top:14px;}
+  #pendente-bar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:999;padding:12px 16px;text-align:center;font-family:'Fraunces',serif;font-size:13px;font-weight:600;align-items:center;justify-content:center;gap:8px;background:#FEF3C7;color:#B45309;box-shadow:0 -2px 12px rgba(0,0,0,.1);}
+  #pendente-bar.syncing{background:#DBEAFE;color:#1E40AF;}
+  #pendente-bar.synced{background:var(--go-l);color:var(--go);}
   .invalid{background:#fff;border-radius:20px;padding:44px 24px;text-align:center;}
   .invalid h2{font-family:'Fraunces',serif;font-size:20px;color:var(--stop);margin-bottom:10px;}
   .invalid p{font-size:13px;color:var(--slate);line-height:1.6;}
@@ -361,13 +364,16 @@
 
   <!-- SUCESSO -->
   <div class="success" id="success">
-    <div class="s-icon">✅</div>
-    <h2>Registro enviado!</h2>
-    <p>O registro do dia foi salvo com sucesso.<br>Em caso de anomalia, o gestor já foi notificado.</p>
-    <div class="s-tag">✓ Registrado às <span id="s-time"></span></div>
+    <div class="s-icon" id="s-icon">✅</div>
+    <h2 id="s-titulo">Registro enviado!</h2>
+    <p id="s-texto">O registro do dia foi salvo com sucesso.<br>Em caso de anomalia, o gestor já foi notificado.</p>
+    <div class="s-tag" id="s-tag">✓ Registrado às <span id="s-time"></span></div>
     <br><br>
     <button class="btn" onclick="reset()" style="background:var(--go)"><span>➕</span> Novo registro</button>
   </div>
+
+  <!-- BARRA DE PENDÊNCIAS (fila offline) -->
+  <div id="pendente-bar"><span>📋 0 registro(s) aguardando envio</span></div>
 
 </div>
 <script>
@@ -376,6 +382,94 @@
 // ============================================================
 const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycby3bXMQhSH0YqNSkf67DLjS3NNBptKUHhMIos_DUQJCBG3d3VYTVTUcrq81Com7otYmTQ/exec';
 const CLORO_MIN=0.2, CLORO_MAX=2.0, PH_MIN=6.0, PH_MAX=9.5;
+
+// ============================================================
+// FILA OFFLINE
+// ============================================================
+const FILA_KEY   = 'filtratech_fila_pendente';
+const TIMEOUT_MS = 10000;
+let processandoFila = false;
+
+function lerFila() {
+  try { return JSON.parse(localStorage.getItem(FILA_KEY) || '[]'); } catch(e) { return []; }
+}
+function salvarFila(fila) {
+  try { localStorage.setItem(FILA_KEY, JSON.stringify(fila)); } catch(e) {}
+}
+function adicionarNaFila(payload) {
+  const fila = lerFila();
+  fila.push({ payload, _salvoEm: new Date().toISOString() });
+  salvarFila(fila);
+}
+function quantidadePendente() {
+  return lerFila().length;
+}
+
+function atualizarBadgePendente() {
+  const bar = document.getElementById('pendente-bar');
+  if (!bar) return;
+  const n = quantidadePendente();
+  if (n > 0 && !processandoFila) {
+    bar.className = '';
+    bar.querySelector('span').textContent = `📋 ${n} registro(s) aguardando envio`;
+    bar.style.display = 'flex';
+  } else if (n === 0 && !processandoFila) {
+    bar.style.display = 'none';
+  }
+}
+
+// Envia um payload via GET com timeout — retorna true/false (não lança erro)
+async function enviarComTimeout(payload) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const p = new URLSearchParams();
+    Object.keys(payload).forEach(k => p.append(k, payload[k]===null?'':String(payload[k])));
+    await fetch(URL_SCRIPT+'?'+p.toString(), {method:'GET', mode:'no-cors', signal: controller.signal});
+    return true;
+  } catch(e) {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Tenta reenviar tudo que estiver pendente. Chamado ao reconectar e ao abrir o app.
+async function processarFila() {
+  if (processandoFila) return;
+  const fila = lerFila();
+  if (fila.length === 0) return;
+  if (!navigator.onLine) return;
+
+  processandoFila = true;
+  const bar  = document.getElementById('pendente-bar');
+  const span = bar?.querySelector('span');
+  if (bar) {
+    bar.className = 'syncing';
+    if (span) span.textContent = `🔄 Enviando ${fila.length} registro(s) pendente(s)…`;
+    bar.style.display = 'flex';
+  }
+
+  const restantes = [];
+  for (const item of fila) {
+    const ok = await enviarComTimeout(item.payload);
+    if (!ok) restantes.push(item);
+  }
+  salvarFila(restantes);
+  processandoFila = false;
+
+  if (bar) {
+    if (restantes.length === 0) {
+      bar.className = 'synced';
+      if (span) span.textContent = '✅ Registros pendentes enviados com sucesso!';
+      setTimeout(() => { bar.style.display = 'none'; bar.className = ''; }, 4000);
+    } else {
+      atualizarBadgePendente();
+    }
+  }
+}
+
+window.addEventListener('online', processarFila);
 
 // ============================================================
 // LEITURA DE PARÂMETROS DA URL
@@ -472,6 +566,10 @@ async function inicializar() {
 
   // Se PONTOS estiver vazio, usa um ponto padrão
   if (PONTOS.length === 0) PONTOS = ['Ponto de Consumo'];
+
+  // Fila offline: mostra pendências e tenta reenviar se já tiver internet
+  atualizarBadgePendente();
+  processarFila();
 
   // Badge do cliente
   const nomeEl   = document.getElementById('cliente-nome');
@@ -848,10 +946,10 @@ async function enviar() {
   const fora        = foraDopadrao();
   const clienteNome = CLIENTE || '[ TESTE ]';
 
-  const fetchPromises = [];
+  // Monta a lista de payloads (um por ponto, em dia útil; um único nos demais casos)
+  const payloads = [];
 
   if (dayType === 'util') {
-    // Uma requisição por ponto
     PONTOS.forEach((ponto, i) => {
       // 1 ponto: cs=saída, cc=consumo. Múltiplos: cs vazio, cc=leitura do ponto
       const ehRotEnvio = ponto.trim().toUpperCase() === 'PONTO ROTATIVO';
@@ -860,9 +958,9 @@ async function enviar() {
       const cc = document.getElementById('cloro-consumo-'+i)?.value || '';
       const ps = (phAtivo && PONTOS.length === 1) ? (document.getElementById('ph-saida-'+i)?.value || '') : '';
       const pc = phAtivo ? (document.getElementById('ph-consumo-'+i)?.value || '') : '';
+      const hidroPonto = TEM_HIDRO ? (document.getElementById('hidrometro-leitura')?.value || null) : null;
 
-      const hidro = TEM_HIDRO ? (document.getElementById('hidrometro-leitura')?.value || null) : null;
-      const payload = {
+      payloads.push({
         cliente: clienteNome,
         gestao:  GESTAO,
         preposto: funcionário,
@@ -875,20 +973,14 @@ async function enviar() {
         phConsumo: phAtivo ? (pc || null) : null,
         justificativa: just || null,
         observacoes:   obs || null,
-        hidrometro:    hidro || null,
+        hidrometro:    hidroPonto || null,
         foraDopadrao:  fora,
         timestamp
-      };
-
-      if (URL_SCRIPT !== 'SUA_URL_DO_APPS_SCRIPT') {
-        const p = new URLSearchParams();
-        Object.keys(payload).forEach(k => p.append(k, payload[k]===null?'':String(payload[k])));
-        fetchPromises.push(fetch(URL_SCRIPT+'?'+p.toString(), {method:'GET', mode:'no-cors'}));
-      }
+      });
     });
   } else {
     // Folga ou não mediu — uma única linha
-    const payload = {
+    payloads.push({
       cliente: clienteNome,
       gestao:  GESTAO,
       preposto: funcionário,
@@ -902,25 +994,65 @@ async function enviar() {
       hidrometro:    hidro || null,
       foraDopadrao:  false,
       timestamp
-    };
-    if (URL_SCRIPT !== 'SUA_URL_DO_APPS_SCRIPT') {
-      const p = new URLSearchParams();
-      Object.keys(payload).forEach(k => p.append(k, payload[k]===null?'':String(payload[k])));
-      fetchPromises.push(fetch(URL_SCRIPT+'?'+p.toString(), {method:'GET', mode:'no-cors'}));
+    });
+  }
+
+  // Tenta enviar cada payload. O que não confirmar (sem internet, timeout ou falha)
+  // cai na fila local e é reenviado automaticamente depois — nunca se perde.
+  let algumEnfileirado = false;
+
+  if (URL_SCRIPT !== 'SUA_URL_DO_APPS_SCRIPT') {
+    for (const payload of payloads) {
+      if (!navigator.onLine) {
+        adicionarNaFila(payload);
+        algumEnfileirado = true;
+        continue;
+      }
+      const ok = await enviarComTimeout(payload);
+      if (!ok) {
+        adicionarNaFila(payload);
+        algumEnfileirado = true;
+      }
     }
   }
 
-  try {
-    await Promise.all(fetchPromises);
-    document.getElementById('form-area').style.display = 'none';
-    document.getElementById('success').style.display   = 'block';
-    document.getElementById('s-time').textContent = new Date().toLocaleTimeString('pt-BR');
-    if (CLIENTE) { setTimeout(calCarregar, 2000); }
-  } catch(e) {
-    btn.disabled = false;
-    btn.innerHTML = '<span>📤</span> Enviar Registro do Dia';
-    alert('Erro ao enviar. Verifique a conexão e tente novamente.');
+  atualizarBadgePendente();
+  mostrarSucesso(algumEnfileirado);
+}
+
+// ============================================================
+// TELA DE CONFIRMAÇÃO (sucesso real x salvo na fila offline)
+// ============================================================
+function mostrarSucesso(enfileirado) {
+  document.getElementById('form-area').style.display = 'none';
+  document.getElementById('success').style.display   = 'block';
+
+  const hora   = new Date().toLocaleTimeString('pt-BR');
+  const icon   = document.getElementById('s-icon');
+  const titulo = document.getElementById('s-titulo');
+  const texto  = document.getElementById('s-texto');
+  const tag    = document.getElementById('s-tag');
+
+  if (enfileirado) {
+    icon.textContent = '📵';
+    icon.style.background = '#FEF3C7';
+    titulo.textContent = 'Salvo no aparelho';
+    texto.innerHTML = 'Sem conexão no momento — o registro foi salvo no celular e será enviado automaticamente assim que a internet voltar. Você não precisa fazer nada.';
+    tag.style.background = '#FEF3C7';
+    tag.style.color = '#B45309';
+    tag.innerHTML = '📋 Aguardando envio — salvo às <span id="s-time"></span>';
+  } else {
+    icon.textContent = '✅';
+    icon.style.background = 'var(--go-l)';
+    titulo.textContent = 'Registro enviado!';
+    texto.innerHTML = 'O registro do dia foi salvo com sucesso.<br>Em caso de anomalia, o gestor já foi notificado.';
+    tag.style.background = 'var(--go-l)';
+    tag.style.color = 'var(--go)';
+    tag.innerHTML = '✓ Registrado às <span id="s-time"></span>';
   }
+  document.getElementById('s-time').textContent = hora;
+
+  if (CLIENTE) { setTimeout(calCarregar, 2000); }
 }
 
 // ============================================================
