@@ -32,6 +32,10 @@
   .cliente-badge .pin{font-size:20px;}
   .cliente-nome{font-family:'Fraunces',serif;font-size:15px;font-weight:600;color:#fff;text-align:left;}
   .cliente-gestao{font-size:11px;color:#4CAF50;margin-top:2px;}
+  #conexao-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px;margin-top:8px;background:rgba(255,255,255,.12);color:#fff;}
+  #conexao-status .dot{width:7px;height:7px;border-radius:50%;background:#4CAF50;box-shadow:0 0 0 2px rgba(76,175,80,.3);}
+  #conexao-status.offline{background:rgba(220,38,38,.18);}
+  #conexao-status.offline .dot{background:#F87171;box-shadow:0 0 0 2px rgba(248,113,113,.3);}
   .card{background:#fff;border-radius:20px;padding:24px;margin-bottom:14px;box-shadow:0 4px 24px rgba(0,0,0,.15);animation:slideUp .4s ease both;}
   @keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
   .card-title{font-family:'Fraunces',serif;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:18px;display:flex;align-items:center;gap:9px;}
@@ -188,6 +192,7 @@
       <div>
         <div class="cliente-nome" id="cliente-nome">Carregando...</div>
         <div class="cliente-gestao" id="cliente-gestao"></div>
+        <div id="conexao-status"><span class="dot"></span><span id="conexao-status-texto">Online</span></div>
       </div>
     </div>
   </div>
@@ -472,6 +477,24 @@ async function processarFila() {
 window.addEventListener('online', processarFila);
 
 // ============================================================
+// INDICADOR DE CONEXÃO (sempre visível, tempo real)
+// ============================================================
+function atualizarIndicadorConexao() {
+  const el = document.getElementById('conexao-status');
+  const txt = document.getElementById('conexao-status-texto');
+  if (!el || !txt) return;
+  if (navigator.onLine) {
+    el.classList.remove('offline');
+    txt.textContent = 'Online';
+  } else {
+    el.classList.add('offline');
+    txt.textContent = 'Offline — dados serão salvos no aparelho';
+  }
+}
+window.addEventListener('online', atualizarIndicadorConexao);
+window.addEventListener('offline', atualizarIndicadorConexao);
+
+// ============================================================
 // LEITURA DE PARÂMETROS DA URL
 // ============================================================
 const params = new URLSearchParams(window.location.search);
@@ -569,6 +592,7 @@ async function inicializar() {
 
   // Fila offline: mostra pendências e tenta reenviar se já tiver internet
   atualizarBadgePendente();
+  atualizarIndicadorConexao();
   processarFila();
 
   // Badge do cliente
@@ -1037,7 +1061,13 @@ function mostrarSucesso(enfileirado) {
     icon.textContent = '📵';
     icon.style.background = '#FEF3C7';
     titulo.textContent = 'Salvo no aparelho';
-    texto.innerHTML = 'Sem conexão no momento — o registro foi salvo no celular e será enviado automaticamente assim que a internet voltar. Você não precisa fazer nada.';
+    texto.innerHTML = 'Sem conexão no momento. <strong>O registro já está salvo neste celular</strong> — não precisa preencher de novo.<br><br>' +
+      '<span style="display:block;text-align:left;font-size:12px;color:#92400E;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin-top:6px;">' +
+      '<strong>O que fazer agora:</strong><br>' +
+      '1. Pode fechar o app normalmente.<br>' +
+      '2. Assim que o celular pegar sinal, o envio acontece sozinho.<br>' +
+      '3. Você vai ver o aviso "✅ Registros pendentes enviados" quando confirmar.' +
+      '</span>';
     tag.style.background = '#FEF3C7';
     tag.style.color = '#B45309';
     tag.innerHTML = '📋 Aguardando envio — salvo às <span id="s-time"></span>';
