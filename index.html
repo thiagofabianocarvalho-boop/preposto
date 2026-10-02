@@ -1375,6 +1375,10 @@ function montarPDF(dados, dataIni, dataFim) {
     if (!porData[k]) porData[k] = { data: r.data, tipoDia: r.tipoDia, pontos: {}, hidro: r.hidrometro||'' };
     porData[k].pontos[r.ponto] = r;
     if (r.hidrometro) porData[k].hidro = r.hidrometro;
+    var j = String(r.justificativa||'').replace(/^\s*justificativa\s*:\s*/i,'').trim();
+    if (j) porData[k].just = j;
+    var o = String(r.observacoes||'').trim();
+    if (o) porData[k].obs = o;
   });
 
   // Ordenar por data
@@ -1521,7 +1525,8 @@ function montarPDF(dados, dataIni, dataFim) {
     });
   }).length;
 
-  if (finalY + 22 < 200) {
+  if (finalY + 22 > 195) { doc.addPage(); finalY = 20; }
+  {
     doc.setFillColor(240,248,240);
     doc.roundedRect(margem, finalY, W-margem*2, 22, 3, 3, 'F');
     doc.setFontSize(8); doc.setTextColor(50,50,50); doc.setFont('helvetica','bold');
@@ -1531,6 +1536,30 @@ function montarPDF(dados, dataIni, dataFim) {
     doc.text('Dias sem medição: '+semMed, margem+55, finalY+14);
     doc.text('Dias com FORA: '+comFora, margem+110, finalY+14);
     doc.text('Dias com ATENÇÃO: '+comAtencao, margem+160, finalY+14);
+  }
+
+  // --- JUSTIFICATIVAS / OCORRÊNCIAS ---
+  var ocorrencias = chaves.filter(function(k){ return porData[k].just || porData[k].obs; })
+    .map(function(k){
+      var r = porData[k];
+      var t = r.tipoDia==='util'?'Medição':r.tipoDia==='nao-mediu'?'Sem medição':'Folga';
+      return [fmtData(r.data), t, r.just||'', r.obs||''];
+    });
+  if (ocorrencias.length) {
+    var yOc = finalY + 30;
+    if (yOc > 180) { doc.addPage(); yOc = 20; }
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(27,94,32);
+    doc.text('JUSTIFICATIVAS E OBSERVAÇÕES DO PERÍODO', margem, yOc);
+    doc.autoTable({
+      head: [['Data','Tipo','Justificativa','Observações']],
+      body: ocorrencias,
+      startY: yOc + 3,
+      margin: { left: margem, right: margem, bottom: 14 },
+      styles: { fontSize: 7.5, cellPadding: 2, valign: 'middle', overflow: 'linebreak' },
+      headStyles: { fillColor: [27,94,32], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+      columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 24 }, 2: { cellWidth: 'auto' }, 3: { cellWidth: 'auto' } },
+      alternateRowStyles: { fillColor: [245,250,245] }
+    });
   }
 
   // --- RODAPÉ ---
